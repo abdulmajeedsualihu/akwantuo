@@ -1,0 +1,157 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 34 40% 98%;
+    --foreground: 215 25% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 12%;
+
+    --primary: 161 94% 30%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 34 20% 94%;
+    --secondary-foreground: 215 25% 12%;
+
+    --muted: 34 15% 93%;
+    --muted-foreground: 215 15% 50%;
+
+    --accent: 38 92% 50%;
+    --accent-foreground: 215 25% 12%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 15% 90%;
+    --input: 215 15% 90%;
+    --ring: 161 94% 30%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 34 40% 96%;
+    --sidebar-foreground: 215 25% 12%;
+    --sidebar-primary: 161 94% 30%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 34 20% 94%;
+    --sidebar-accent-foreground: 215 25% 12%;
+    --sidebar-border: 215 15% 90%;
+    --sidebar-ring: 161 94% 30%;
+
+    /* Custom tokens */
+    --emerald-dark: 161 94% 24%;
+    --gold: 38 92% 50%;
+    --gold-light: 38 92% 95%;
+    --bone: 34 40% 98%;
+    --charcoal: 215 25% 12%;
+  }
+
+  .dark {
+    --background: 215 25% 8%;
+    --foreground: 34 20% 94%;
+
+    --card: 215 25% 12%;
+    --card-foreground: 34 20% 94%;
+
+    --popover: 215 25% 12%;
+    --popover-foreground: 34 20% 94%;
+
+    --primary: 161 80% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 20% 18%;
+    --secondary-foreground: 34 20% 94%;
+
+    --muted: 215 20% 18%;
+    --muted-foreground: 215 15% 60%;
+
+    --accent: 38 92% 50%;
+    --accent-foreground: 215 25% 12%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 20% 20%;
+    --input: 215 20% 20%;
+    --ring: 161 80% 40%;
+
+    --sidebar-background: 215 25% 10%;
+    --sidebar-foreground: 34 20% 94%;
+    --sidebar-primary: 161 80% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 20% 18%;
+    --sidebar-accent-foreground: 34 20% 94%;
+    --sidebar-border: 215 20% 20%;
+    --sidebar-ring: 161 80% 40%;
+
+    --emerald-dark: 161 80% 30%;
+    --gold: 38 92% 50%;
+    --gold-light: 38 40% 15%;
+    --bone: 215 25% 8%;
+    --charcoal: 34 20% 94%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Tabular nums for prices */
+  .price {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* Hard shadow - cheap to render, visible in sunlight */
+  .shadow-hard {
+    box-shadow: 2px 2px 0px 0px rgba(0,0,0,0.08);
+  }
+
+  .shadow-hard-lg {
+    box-shadow: 3px 3px 0px 0px rgba(0,0,0,0.12);
+  }
+
+  /* Button press feedback */
+  .press-feedback {
+    @apply active:scale-[0.96] transition-transform duration-150;
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Kente-inspired CSS placeholder pattern */
+  .kente-pattern {
+    background-color: hsl(var(--secondary));
+    background-image:
+      repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 8px,
+        hsl(var(--accent) / 0.15) 8px,
+        hsl(var(--accent) / 0.15) 10px
+      ),
+      repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 8px,
+        hsl(var(--primary) / 0.1) 8px,
+        hsl(var(--primary) / 0.1) 10px
+      );
+  }
+
+  /* Label style */
+  .label-caps {
+    @apply text-xs uppercase tracking-widest font-semibold text-muted-foreground;
+  }
+}

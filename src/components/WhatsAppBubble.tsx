@@ -1,5 +1,7 @@
 import { MessageSquare, ExternalLink, ChevronRight } from "lucide-react";
 
+import { buildVendorUrl } from "@/lib/share";
+
 interface WhatsAppBubbleProps {
   businessName: string;
   price: string;
@@ -9,6 +11,16 @@ interface WhatsAppBubbleProps {
 
 const WhatsAppBubble = ({ businessName, price, photo, visible }: WhatsAppBubbleProps) => {
   if (!visible) return null;
+
+  const shareUrl = buildVendorUrl(businessName);
+  const whatsappMessage = encodeURIComponent(
+    [
+      `Hi! Check out my shop ${businessName || "my storefront"}: ${shareUrl}`,
+      price ? `Price: GH₵${price}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n\n")
+  );
 
   return (
     <div className="fixed bottom-6 left-4 right-4 z-50 animate-slide-up">
@@ -36,15 +48,15 @@ const WhatsAppBubble = ({ businessName, price, photo, visible }: WhatsAppBubbleP
             </p>
             <div className="flex items-center gap-1 mt-1">
               <ExternalLink className="w-3 h-3 text-primary" />
-              <span className="text-xs text-primary font-medium">yourshop.link/store</span>
+              <span className="text-xs text-primary font-medium break-all">{shareUrl}</span>
             </div>
           </div>
         </div>
 
-        <button 
+        <button
           onClick={() => {
-            const text = encodeURIComponent(`Hi! Check out my shop ${businessName}: https://shopsnap.link/store\n\nPrice: GH₵${price}`);
-            window.open(`https://wa.me/?text=${text}`, '_blank');
+            if (typeof window === "undefined") return;
+            window.open(`https://wa.me/?text=${whatsappMessage}`, "_blank");
           }}
           className="w-full flex items-center justify-between px-3 py-2 bg-primary text-primary-foreground rounded-xl mt-3 font-semibold press-feedback"
         >

@@ -1,19 +1,114 @@
+import { useEffect, useMemo, useRef, useState } from "react";
 import { X, Check, Link2, Download, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+
+import { buildVendorUrl, slugifyDisplayName } from "@/lib/share";
 
 interface OnboardingSuccessProps {
   onDone: () => void;
   onShare: () => void;
-  url: string;
+  displayName?: string;
 }
 
-const OnboardingSuccess = ({ onDone, onShare, url = "akwantuo.com/kwesi-tours" }: OnboardingSuccessProps) => {
+const OnboardingSuccess = ({ onDone, onShare, displayName = "" }: OnboardingSuccessProps) => {
+  const shareUrl = useMemo(() => buildVendorUrl(displayName), [displayName]);
+  const slug = useMemo(() => slugifyDisplayName(displayName) || "storefront", [displayName]);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
+  const [downloading, setDownloading] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const qrImageUrl = useMemo(() => {
+    if (!shareUrl) {
+      return "";
+    }
+    return `https://api.qrserver.com/v1/create-qr-code/?size=260x260&format=png&margin=1&data=${encodeURIComponent(
+      shareUrl
+    )}`;
+  }, [shareUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    setCopyState("idle");
+  }, [shareUrl]);
+
+  const scheduleCopyReset = () => {
+    if (copyTimerRef.current) {
+      clearTimeout(copyTimerRef.current);
+    }
+    copyTimerRef.current = setTimeout(() => {
+      setCopyState("idle");
+    }, 2000);
+  };
+
+  const handleCopy = async () => {
+    if (!shareUrl) return;
+    if (typeof navigator === "undefined" || !navigator.clipboard) {
+      setCopyState("failed");
+      toast.error("Copying is not available in this browser.");
+      scheduleCopyReset();
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopyState("copied");
+      toast.success("Link copied to clipboard");
+    } catch {
+      setCopyState("failed");
+      toast.error("Could not copy the link");
+    } finally {
+      scheduleCopyReset();
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!qrImageUrl) return;
+    setDownloading(true);
+    try {
+      const response = await fetch(qrImageUrl);
+      if (!response.ok) {
+        throw new Error("Failed to download QR code");
+      }
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = `${slug}-qr.png`;
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+      toast.success("QR code downloaded");
+    } catch {
+      toast.error("Could not download the QR code");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleShare = () => {
+    if (!shareUrl || typeof window === "undefined") return;
+    const encoded = encodeURIComponent(`Hi! Check out my page: ${shareUrl}`);
+    window.open(`https://wa.me/?text=${encoded}`, "_blank");
+    onShare();
+  };
+
+  const copyLabel =
+    copyState === "copied" ? "Link copied!" : copyState === "failed" ? "Try again" : "Copy link";
+  const downloadDisabled = !qrImageUrl || downloading;
+
   return (
     <div className="min-h-screen bg-white flex flex-col items-center p-4">
       <div className="w-full max-w-[400px] flex flex-col h-full animate-in zoom-in-95 duration-700">
         {/* Header */}
         <header className="flex items-center justify-between py-6 border-b border-slate-100">
-          <button 
+          <button
             onClick={onDone}
             className="p-2 -ml-2 text-charcoal hover:bg-slate-50 rounded-full transition-colors"
           >
@@ -28,7 +123,7 @@ const OnboardingSuccess = ({ onDone, onShare, url = "akwantuo.com/kwesi-tours" }
             <div className="w-20 h-20 rounded-full bg-primary-navy flex items-center justify-center text-white shadow-xl">
               <Check size={40} strokeWidth={3} />
             </div>
-            
+
             {/* Decorative Dots */}
             <div className="absolute top-0 right-0 w-4 h-4 rounded-full bg-amber-400" />
             <div className="absolute top-4 left-[-8px] w-4 h-4 rounded-full bg-rose-400" />
@@ -48,13 +143,15 @@ const OnboardingSuccess = ({ onDone, onShare, url = "akwantuo.com/kwesi-tours" }
 
         {/* Link Share Box */}
         <div className="bg-[#f8fafc] rounded-2xl p-5 border border-slate-100 mb-8 space-y-4">
-          <div className="flex items-center bg-white rounded-xl p-3 border border-slate-100 shadow-sm">
-            <Link2 size={20} className="text-primary-navy mr-3 ml-1" />
-            <span className="flex-1 text-[14px] font-bold text-charcoal truncate">
-              {url}
-            </span>
-            <button className="h-10 px-6 bg-white border border-slate-100 rounded-lg text-primary-navy font-bold text-[14px] hover:bg-slate-50 transition-all ml-2 shadow-sm">
-              Copy
+          <div className="flex items-center gap-3 bg-white rounded-xl p-3 border border-slate-100 shadow-sm">
+            <Link2 size={20} className="text-primary-navy" />
+            <span className="flex-1 text-[14px] font-bold text-charcoal truncate break-words">{shareUrl}</span>
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="h-10 px-5 bg-white border border-slate-100 rounded-lg text-primary-navy font-bold text-[14px] hover:bg-slate-50 transition-all shadow-sm"
+            >
+              {copyLabel}
             </button>
           </div>
         </div>
@@ -62,22 +159,29 @@ const OnboardingSuccess = ({ onDone, onShare, url = "akwantuo.com/kwesi-tours" }
         {/* QR Code Section */}
         <div className="flex flex-col items-center space-y-6 mb-10">
           <div className="w-48 h-48 p-4 bg-orange-50 rounded-3xl border border-orange-100 shadow-lg flex items-center justify-center relative">
-             <div className="w-full h-full bg-white rounded-2xl shadow-sm p-4 relative overflow-hidden flex items-center justify-center">
-                {/* Mock QR Code Pattern */}
-                <div className="w-full h-full bg-slate-900/5 grid grid-cols-6 grid-rows-6 gap-1 p-1">
-                  {[...Array(36)].map((_, i) => (
-                    <div key={i} className={i % 3 === 0 ? "bg-slate-800" : "bg-transparent"} />
-                  ))}
-                </div>
-                {/* QR Finder patterns */}
-                <div className="absolute top-3 left-3 w-8 h-8 border-4 border-slate-800" />
-                <div className="absolute top-3 right-3 w-8 h-8 border-4 border-slate-800" />
-                <div className="absolute bottom-3 left-3 w-8 h-8 border-4 border-slate-800" />
-             </div>
+            <div className="w-full h-full bg-white rounded-2xl shadow-sm p-4 relative overflow-hidden flex items-center justify-center">
+              {qrImageUrl ? (
+                <img
+                  src={qrImageUrl}
+                  alt="Storefront QR code"
+                  className="w-full h-full object-cover rounded-2xl"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="w-full h-full rounded-2xl bg-slate-200 animate-pulse" />
+              )}
+            </div>
           </div>
-          <button className="flex items-center gap-2 text-[14px] font-black tracking-widest text-primary-navy uppercase hover:underline">
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={downloadDisabled}
+            className={`flex items-center gap-2 text-[14px] font-black tracking-widest text-primary-navy uppercase ${
+              downloadDisabled ? "opacity-50 cursor-not-allowed" : "hover:underline"
+            }`}
+          >
             <Download size={18} />
-            Download QR code
+            {downloading ? "Downloading..." : "Download QR code"}
           </button>
         </div>
 
@@ -90,7 +194,7 @@ const OnboardingSuccess = ({ onDone, onShare, url = "akwantuo.com/kwesi-tours" }
             Go to my dashboard
           </Button>
           <Button
-            onClick={onShare}
+            onClick={handleShare}
             className="w-full h-[4.5rem] bg-emerald-500 hover:bg-emerald-600 rounded-2xl text-white text-lg font-bold shadow-lg flex items-center justify-center gap-3"
           >
             <MessageCircle size={24} />

@@ -1,6 +1,8 @@
-import { Eye, Pencil, Share2, MessageSquare, Copy, Check } from "lucide-react";
+import { MessageSquare, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+
+import { buildVendorUrl } from "@/lib/share";
 
 interface StorePreviewProps {
   businessName: string;
@@ -22,9 +24,11 @@ const StorePreview = ({
   template,
 }: StorePreviewProps) => {
   const [copied, setCopied] = useState(false);
+  const shareUrl = useMemo(() => buildVendorUrl(businessName), [businessName]);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText("https://yourshop.link/" + businessName.toLowerCase().replace(/\s/g, "-"));
+    if (!shareUrl) return;
+    navigator.clipboard.writeText(shareUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

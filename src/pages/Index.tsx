@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import HeroLanding from "@/components/HeroLanding";
 import OnboardingPhone from "@/components/OnboardingPhone";
@@ -12,7 +12,6 @@ import StorePreview from "@/components/StorePreview";
 import ViewToggle from "@/components/ViewToggle";
 import WhatsAppBubble from "@/components/WhatsAppBubble";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -131,7 +130,7 @@ const Index = () => {
   if (step === "success") {
     return (
       <OnboardingSuccess 
-        url={`akwantuo.com/${profileData.displayName.toLowerCase().replace(/\s+/g, '-')}`}
+        displayName={profileData.displayName}
         onDone={() => setStep("dashboard")}
         onShare={() => toast.info("Sharing on WhatsApp...")}
       />

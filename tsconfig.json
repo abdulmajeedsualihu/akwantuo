@@ -6,7 +6,7 @@
     "noUnusedParameters": false,
     "paths": {
       "@/*": [
-        "akwantuo/src/*"
+        "src/*"
       ]
     },
     "skipLibCheck": true,

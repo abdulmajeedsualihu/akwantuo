@@ -1,5 +1,6 @@
 import { ArrowRight, Sparkles, Zap, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import AkwantuoLogo from "./AkwantuoLogo";
 
 interface HeroLandingProps {
   onGetStarted: () => void;
@@ -11,10 +12,8 @@ const HeroLanding = ({ onGetStarted }: HeroLandingProps) => {
       {/* Header */}
       <header className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <Zap className="w-4 h-4 text-primary-foreground" />
-          </div>
-          <span className="font-bold text-foreground tracking-tight">ShopSnap</span>
+          <AkwantuoLogo variant="boxed" size="sm" />
+          <span className="font-bold text-charcoal tracking-tight text-lg">Akwantuo</span>
         </div>
       </header>
 
@@ -22,18 +21,18 @@ const HeroLanding = ({ onGetStarted }: HeroLandingProps) => {
       <main className="flex-1 flex flex-col justify-center px-6 pb-12">
         <div className="max-w-md mx-auto w-full space-y-8">
           {/* Badge */}
-          <div className="inline-flex items-center gap-1.5 bg-accent/10 border border-accent/20 rounded-pill px-3 py-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-accent" />
-            <span className="text-xs font-semibold text-accent">AI-Powered</span>
+          <div className="inline-flex items-center gap-1.5 bg-primary-navy/10 border border-primary-navy/20 rounded-pill px-3 py-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-primary-navy" />
+            <span className="text-xs font-semibold text-primary-navy">AI-Powered</span>
           </div>
 
           {/* Headline */}
           <div className="space-y-3">
-            <h1 className="text-4xl font-bold tracking-tight leading-[1.08] text-foreground">
+            <h1 className="text-4xl font-bold tracking-tight leading-[1.08] text-charcoal">
               Turn your photos into a shop in{" "}
-              <span className="text-primary">30 seconds</span>
+              <span className="text-primary-navy">30 seconds</span>
             </h1>
-            <p className="text-lg text-muted-foreground leading-relaxed">
+            <p className="text-lg text-muted-foreground font-medium leading-relaxed">
               Snap your products, let AI build your storefront, share on WhatsApp. No tech skills needed.
             </p>
           </div>

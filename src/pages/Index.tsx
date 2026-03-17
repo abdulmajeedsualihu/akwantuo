@@ -27,7 +27,7 @@ const Index = () => {
   const [view, setView] = useState<"edit" | "preview">("edit");
   const [liteMode, setLiteMode] = useState(false);
   const [storeData, setStoreData] = useState({
-    businessName: "Ama's Baskets",
+    businessName: "Akwantuo Store",
     description: MOCK_DESCRIPTION,
     price: "45.00",
     negotiable: true,

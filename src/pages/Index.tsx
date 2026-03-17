@@ -2,51 +2,62 @@ import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import HeroLanding from "@/components/HeroLanding";
 import OnboardingPhone from "@/components/OnboardingPhone";
-import CategorySelector from "@/components/CategorySelector";
+import ProfileDetails from "@/components/ProfileDetails";
 import PhotoUpload from "@/components/PhotoUpload";
-import AILoading from "@/components/AILoading";
-import TemplateSelector from "@/components/TemplateSelector";
+import FirstTour from "@/components/FirstTour";
+import OnboardingPreview from "@/components/OnboardingPreview";
+import OnboardingSuccess from "@/components/OnboardingSuccess";
 import CustomizationPanel from "@/components/CustomizationPanel";
 import StorePreview from "@/components/StorePreview";
 import ViewToggle from "@/components/ViewToggle";
 import WhatsAppBubble from "@/components/WhatsAppBubble";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Share2, Copy } from "lucide-react";
+import { CheckCircle2, Copy } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
-type Step = "landing" | "phone" | "category" | "photos" | "loading" | "templates" | "dashboard";
-
-const MOCK_DESCRIPTION = "Beautiful handwoven Bolga basket, crafted by skilled artisans in the Upper East Region. Made from locally sourced elephant grass, each piece is unique and built to last. Perfect for home décor, shopping, or as a thoughtful gift.";
+type Step = "landing" | "phone" | "profile" | "photos" | "first-tour" | "preview" | "success" | "dashboard";
 
 const Index = () => {
   const { user } = useAuth();
-  const [step, setStep] = useState<Step>(user ? "category" : "landing");
-  const [category, setCategory] = useState("");
-  const [photos, setPhotos] = useState<string[]>([]);
-  const [template, setTemplate] = useState("professional");
+  const [step, setStep] = useState<Step>(user ? "profile" : "landing");
   const [view, setView] = useState<"edit" | "preview">("edit");
   const [liteMode, setLiteMode] = useState(false);
-  const [storeData, setStoreData] = useState({
-    businessName: "Akwantuo Store",
-    description: MOCK_DESCRIPTION,
-    price: "45.00",
-    negotiable: true,
-    location: "Makola Market, Accra",
+  
+  const [profileData, setProfileData] = useState({
+    displayName: "",
+    location: "",
+    phone: "",
+    bio: "",
+    languages: ["English", "Twi"],
   });
+
+  const [photosData, setPhotosData] = useState({
+    mainPhoto: "",
+    gallery: [] as string[],
+  });
+
+  const [tourData, setTourData] = useState({
+    title: "",
+    duration: "1h",
+    price: "0.00",
+    description: "",
+    highlights: ["Historical Landmarks", "Local Cuisine"],
+  });
+
   const [isPublishing, setIsPublishing] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
 
   // Load persistence
   useEffect(() => {
-    const saved = localStorage.getItem("shopsnap_state");
+    const saved = localStorage.getItem("akwantuo_onboarding_state");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setStoreData(parsed.storeData);
-        setCategory(parsed.category);
-        setTemplate(parsed.template);
-        if (parsed.photos) setPhotos(parsed.photos);
-        if (parsed.step && parsed.step !== "loading") setStep(parsed.step);
+        if (parsed.profileData) setProfileData(parsed.profileData);
+        if (parsed.photosData) setPhotosData(parsed.photosData);
+        if (parsed.tourData) setTourData(parsed.tourData);
+        if (parsed.step && parsed.step !== "success") setStep(parsed.step);
       } catch (e) {
         console.error("Failed to load saved state", e);
       }
@@ -55,53 +66,25 @@ const Index = () => {
 
   // Save persistence
   useEffect(() => {
-    const state = { storeData, category, template, photos, step };
-    localStorage.setItem("shopsnap_state", JSON.stringify(state));
-  }, [storeData, category, template, photos, step]);
-
-  const handleLoadingComplete = useCallback(() => {
-    // Simulated AI Content Generation based on category
-    const aiContent: Record<string, any> = {
-      food: {
-        businessName: "Mama's Kitchen",
-        description: "Fresh, hot Ghanaian meals prepared daily with love. Specializing in Jollof, Waakye, and Banku. Authenticity in every bite.",
-        price: "25.00",
-      },
-      crafts: {
-        businessName: "Aburi Artisans",
-        description: "Hand-carved woodwork and hand-woven baskets from the heart of Aburi. Each piece tells a story of our heritage.",
-        price: "120.00",
-      },
-      clothing: {
-        businessName: "Kente Kingdom",
-        description: "Authentic royal Kente weaves from Bonwire. Premium quality threads and traditional patterns for your special occasions.",
-        price: "450.00",
-      },
-    };
-
-    if (category && aiContent[category]) {
-      setStoreData(prev => ({
-        ...prev,
-        ...aiContent[category]
-      }));
-    }
-
-    setStep("templates");
-  }, [category]);
+    const state = { profileData, photosData, tourData, step };
+    localStorage.setItem("akwantuo_onboarding_state", JSON.stringify(state));
+  }, [profileData, photosData, tourData, step]);
 
   if (step === "landing") {
     return <HeroLanding onGetStarted={() => setStep("phone")} />;
   }
 
   if (step === "phone") {
-    return <OnboardingPhone onComplete={() => setStep("category")} />;
+    return <OnboardingPhone onComplete={() => setStep("profile")} />;
   }
 
-  if (step === "category") {
+  if (step === "profile") {
     return (
-      <CategorySelector
-        onSelect={(cat) => {
-          setCategory(cat);
+      <ProfileDetails 
+        initialData={profileData}
+        onBack={() => setStep("phone")}
+        onContinue={(data) => {
+          setProfileData(prev => ({ ...prev, ...data }));
           setStep("photos");
         }}
       />
@@ -110,56 +93,82 @@ const Index = () => {
 
   if (step === "photos") {
     return (
-      <PhotoUpload
-        onComplete={(p) => {
-          setPhotos(p);
-          setStep("loading");
+      <PhotoUpload 
+        onBack={() => setStep("profile")}
+        onContinue={(data) => {
+          setPhotosData(data);
+          setStep("first-tour");
+        }}
+        onSkip={() => setStep("first-tour")}
+      />
+    );
+  }
+
+  if (step === "first-tour") {
+    return (
+      <FirstTour 
+        initialData={tourData}
+        onBack={() => setStep("photos")}
+        onContinue={(data) => {
+          setTourData(data);
+          setStep("preview");
         }}
       />
     );
   }
 
-  if (step === "loading") {
-    return <AILoading onComplete={handleLoadingComplete} />;
+  if (step === "preview") {
+    return (
+      <OnboardingPreview 
+        data={{ ...profileData, ...photosData, tour: tourData }}
+        onBack={() => setStep("first-tour")}
+        onEdit={() => setStep("profile")}
+        onPublish={() => setStep("success")}
+      />
+    );
   }
 
-  if (step === "templates") {
+  if (step === "success") {
     return (
-      <TemplateSelector
-        photos={photos}
-        category={category}
-        onSelect={(t) => {
-          setTemplate(t);
-          setStep("dashboard");
-        }}
+      <OnboardingSuccess 
+        url={`akwantuo.com/${profileData.displayName.toLowerCase().replace(/\s+/g, '-')}`}
+        onDone={() => setStep("dashboard")}
+        onShare={() => toast.info("Sharing on WhatsApp...")}
       />
     );
   }
 
   // Dashboard
   return (
-    <div className="min-h-screen pb-24">
+    <div className="min-h-screen pb-24 bg-[#f8fafc]">
       {/* Sticky header */}
-      <header className="sticky top-0 z-40 bg-background/95 border-b border-border px-4 py-3">
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 py-4">
         <div className="flex items-center justify-between max-w-lg mx-auto">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-              <span className="text-xs font-bold text-primary">
-                {storeData.businessName[0]}
-              </span>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary-navy flex items-center justify-center overflow-hidden">
+              {photosData.mainPhoto ? (
+                <img src={photosData.mainPhoto} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-sm font-bold text-white uppercase">
+                  {profileData.displayName[0] || "A"}
+                </span>
+              )}
             </div>
             <div>
-              <p className="text-sm font-semibold text-foreground leading-none">{storeData.businessName}</p>
-              <div className="flex items-center gap-1 mt-0.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span className="text-xs text-primary font-medium">Live</span>
+              <p className="text-[15px] font-bold text-charcoal leading-none">{profileData.displayName || "Akwantuo Guide"}</p>
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[11px] text-emerald-600 font-bold uppercase tracking-wider">Live</span>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setLiteMode(!liteMode)}
-              className={`text-[10px] font-bold px-2 py-1 rounded-full border transition-colors ${liteMode ? 'bg-primary text-white border-primary' : 'bg-transparent text-muted-foreground border-border'}`}
+              className={cn(
+                "text-[10px] font-black px-3 py-1.5 rounded-full border transition-all tracking-widest uppercase",
+                liteMode ? 'bg-primary-navy text-white border-primary-navy' : 'bg-white text-muted-foreground border-slate-200'
+              )}
             >
               LITE
             </button>
@@ -168,32 +177,40 @@ const Index = () => {
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-lg mx-auto px-4 py-8 space-y-8 animate-in fade-in duration-700">
         {view === "preview" ? (
           <StorePreview
-            {...storeData}
-            photo={photos[0]}
-            template={template}
+            businessName={profileData.displayName}
+            description={tourData.description}
+            price={tourData.price}
+            photo={photosData.mainPhoto}
+            template="professional"
           />
         ) : (
           <>
             <StorePreview
-              {...storeData}
-              photo={photos[0]}
-              template={template}
+              businessName={profileData.displayName}
+              description={tourData.description}
+              price={tourData.price}
+              photo={photosData.mainPhoto}
+              template="professional"
             />
-            <div className={`space-y-2 ${liteMode ? 'animate-none' : ''}`}>
-              <h2 className="label-caps px-1">Customize Your Store</h2>
+            <div className={cn("space-y-4", liteMode && "opacity-60 grayscale")}>
+              <h2 className="text-[11px] font-black tracking-widest text-charcoal/60 uppercase px-1">Customize Your Page</h2>
               <CustomizationPanel 
-                data={storeData} 
-                onChange={setStoreData} 
+                data={{
+                  businessName: profileData.displayName,
+                  description: tourData.description,
+                  price: tourData.price,
+                  location: profileData.location
+                }} 
+                onChange={(newData: any) => {
+                  setProfileData(prev => ({ ...prev, displayName: newData.businessName, location: newData.location }));
+                  setTourData(prev => ({ ...prev, description: newData.description, price: newData.price }));
+                }} 
                 liteMode={liteMode}
                 onRegenerate={() => {
-                   // Simple regeneration logic
-                   setStoreData(prev => ({
-                     ...prev,
-                     description: "AI Regenerated: " + prev.description.split('. ')[0] + ". Hand-crafted for quality and durability."
-                   }));
+                   toast.success("AI Content updated!");
                 }}
               />
             </div>
@@ -204,54 +221,24 @@ const Index = () => {
                     setTimeout(() => {
                         setIsPublishing(false);
                         setIsPublished(true);
-                        toast.success("Store published successfully! 🎉");
-                    }, 2000);
+                        toast.success("Page updated successfully! 🎉");
+                    }, 1500);
                 }}
                 disabled={isPublishing}
-                className="w-full h-14 text-lg font-bold shadow-hard-lg"
+                className="w-full h-[4.5rem] bg-primary-navy hover:bg-primary-navy/90 rounded-2xl text-lg font-bold shadow-xl"
             >
-                {isPublishing ? "Publishing..." : "Publish Store"}
+                {isPublishing ? "Updating..." : "Update Page"}
             </Button>
           </>
         )}
       </main>
 
-      {/* Publish Success Modal */}
-      {isPublished && (
-          <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in zoom-in duration-300">
-              <div className="bg-card border-2 border-border rounded-3xl p-8 shadow-hard-lg max-w-sm w-full text-center space-y-6">
-                  <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary animate-bounce">
-                      <CheckCircle2 className="w-10 h-10" />
-                  </div>
-                  <div className="space-y-2">
-                      <h2 className="text-2xl font-bold">You're live! 🎉</h2>
-                      <p className="text-muted-foreground">Your professional storefront is now ready to share.</p>
-                  </div>
-                  <div className="p-4 bg-secondary rounded-2xl flex items-center justify-between gap-4">
-                      <span className="text-sm font-medium truncate">shopsnap.link/ama-baskets</span>
-                      <button 
-                        onClick={() => {
-                            navigator.clipboard.writeText("shopsnap.link/ama-baskets");
-                            toast.success("Link copied!");
-                        }}
-                        className="p-2 hover:bg-background rounded-lg transition-colors"
-                      >
-                          <Copy className="w-4 h-4" />
-                      </button>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3">
-                      <Button onClick={() => setIsPublished(false)} className="w-full h-12">
-                          Done
-                      </Button>
-                  </div>
-              </div>
-          </div>
-      )}
+      {/* Success Overlay if needed, or just toast */}
 
       <WhatsAppBubble
-        businessName={storeData.businessName}
-        price={storeData.price}
-        photo={photos[0]}
+        businessName={profileData.displayName}
+        price={tourData.price}
+        photo={photosData.mainPhoto}
         visible={step === "dashboard"}
       />
     </div>

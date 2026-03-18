@@ -90,7 +90,7 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
 
                 <div className="space-y-6">
                   <h1 className="text-5xl sm:text-7xl xl:text-8xl font-black tracking-tight leading-[0.95] text-charcoal">
-                    Turn your <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary-navy to-blue-600">passion</span> into a business
+                    Own your <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary-navy to-blue-600">Bookings</span>, Grow you brand.
                   </h1>
                   <p className="text-xl sm:text-2xl text-muted-foreground font-medium leading-relaxed max-w-2xl mx-auto lg:mx-0">
                     The simplest way for local guides to launch a professional tour site, manage bookings, and grow their audience. All in 60 seconds.
@@ -126,16 +126,16 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
               <div className="flex-1 relative w-full max-w-2xl animate-in zoom-in-95 duration-1000 delay-200">
                 <div className="relative z-10 aspect-square sm:aspect-auto sm:h-[640px] rounded-[3rem] overflow-hidden shadow-edge border-[12px] border-white group">
                   {HERO_IMAGES.map((img, idx) => (
-                    <div 
+                    <div
                       key={img.url}
                       className={cn(
                         "absolute inset-0 transition-all duration-1000 ease-in-out",
                         idx === currentImageIndex ? "opacity-100 scale-100 translate-x-0" : "opacity-0 scale-105 translate-x-full"
                       )}
                     >
-                      <img 
-                        src={img.url} 
-                        alt={img.caption} 
+                      <img
+                        src={img.url}
+                        alt={img.caption}
                         className="w-full h-full object-cover"
                       />
                       {/* Caption Overlay */}
@@ -149,7 +149,7 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
                       </div>
                     </div>
                   ))}
-                  
+
                   {/* Glass Card Overlay (Generic Platform Info) */}
                   <div className="absolute top-8 left-8 bg-white/80 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/40 shadow-xl z-20">
                     <div className="flex items-center gap-3">
@@ -175,7 +175,7 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
                   {/* Progress Dots */}
                   <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-20">
                     {HERO_IMAGES.map((_, idx) => (
-                      <button 
+                      <button
                         key={idx}
                         onClick={() => setCurrentImageIndex(idx)}
                         className={cn(
@@ -186,13 +186,13 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
                     ))}
                   </div>
                 </div>
-                
+
                 {/* Floating Micro-UI */}
                 <div className="absolute -top-12 -right-8 w-44 h-44 bg-white rounded-[3rem] shadow-2xl p-6 flex flex-col items-center justify-center animate-bounce duration-1000 z-30 hidden md:flex border border-slate-50">
                   <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center mb-4">
                     <Zap className="text-amber-600 w-8 h-8" />
                   </div>
-                  <span className="text-[12px] font-black text-center uppercase tracking-widest text-charcoal leading-tight">Instant<br/>AI Sites</span>
+                  <span className="text-[12px] font-black text-center uppercase tracking-widest text-charcoal leading-tight">Instant<br />AI Sites</span>
                 </div>
               </div>
             </div>

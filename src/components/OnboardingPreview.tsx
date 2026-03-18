@@ -1,5 +1,8 @@
-import { ChevronLeft, CheckCircle2, MapPin } from "lucide-react";
+import { ChevronLeft, CheckCircle2, MapPin, Signal, Battery, Wifi } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import LandingPageTemplate from "./LandingPageTemplate";
+import type { LandingPageRecord } from "@/lib/onboardingService";
+import type { Database } from "@/integrations/supabase/types";
 
 interface OnboardingPreviewProps {
   data: any;
@@ -10,20 +13,58 @@ interface OnboardingPreviewProps {
 }
 
 const OnboardingPreview = ({ data, onBack, onPublish, onEdit, publishing }: OnboardingPreviewProps) => {
-  const languages =
-    Array.isArray(data.languages) && data.languages.length
-      ? data.languages.join(", ")
-      : "English, Twi";
+  const mockRecord: LandingPageRecord = {
+    slug: data.slug || "preview",
+    storefront: {
+      id: "preview-id",
+      user_id: "preview-user",
+      business_name: data.displayName || "Alex the Guide",
+      location: data.location || "Accra, Ghana",
+      description: JSON.stringify({
+        text: data.tour?.description || "An authentic experience.",
+        highlights: data.tour?.highlights || [],
+        languages: data.languages || ["English"],
+        duration: data.tour?.duration || "1h",
+        price: data.tour?.price || "0.00",
+        bio: data.bio || "",
+        mainPhoto: data.mainPhoto || "",
+        gallery: data.gallery || [],
+      }),
+      category: data.tour?.title || "Tour Guide",
+      template: "professional",
+      is_live: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as Database["public"]["Tables"]["storefronts"]["Row"],
+    profile: {
+      display_name: data.displayName || "Alex the Guide",
+      location: data.location || "Accra, Ghana",
+      phone: data.phone || "",
+    } as Database["public"]["Tables"]["profiles"]["Row"],
+    descriptionPayload: {
+      text: data.tour?.description || "An authentic experience.",
+      highlights: data.tour?.highlights || [],
+      languages: data.languages || ["English"],
+      duration: data.tour?.duration || "1h",
+      price: data.tour?.price || "0.00",
+      bio: data.bio || "",
+      mainPhoto: data.mainPhoto || "",
+      gallery: data.gallery || [],
+    },
+  };
+
   const tourTitle = data.tour?.title || "Mountain & Trail Guide";
-  const description =
-    data.tour?.description ||
-    "Share what makes your experience unique. Add local stories, group size, and what guests can expect.";
   const duration = data.tour?.duration || "1h";
   const priceTag = data.tour?.price ? `GH₵${data.tour.price}` : "Price pending";
   const highlights =
     Array.isArray(data.tour?.highlights) && data.tour.highlights.length
       ? data.tour.highlights.slice(0, 2).join(" · ")
       : "Add highlights";
+
+  const languages =
+    Array.isArray(data.languages) && data.languages.length
+      ? data.languages.join(", ")
+      : "English, Twi";
 
   const summaryStats = [
     { label: "Duration", value: duration },
@@ -63,52 +104,35 @@ const OnboardingPreview = ({ data, onBack, onPublish, onEdit, publishing }: Onbo
           </div>
         </header>
 
-        <section className="grid gap-8 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)] lg:items-start">
-          <div className="flex flex-col gap-4">
-            <div className="relative mx-auto lg:mx-0">
-              <div className="w-full max-w-[360px] rounded-[3rem] border-[8px] border-slate-900/90 bg-white shadow-2xl overflow-hidden">
-                <div className="h-6 w-full flex items-center justify-between px-6 pt-4">
-                  <span className="text-[10px] font-bold">9:41</span>
-                  <div className="flex gap-1 items-center">
-                    <div className="w-3 h-2 border border-black/20 rounded-[1px]" />
-                    <div className="w-3 h-3 rounded-full border border-black/20" />
-                  </div>
-                </div>
+        <section className="grid gap-8 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] lg:items-center">
+          <div className="flex flex-col gap-6 items-center w-full">
+            {/* Realistic iOS Device Frame - Responsive scaling */}
+            <div className="relative w-full max-w-[300px] sm:max-w-[360px] aspect-[9/19.6] max-h-[72vh] sm:max-h-[78vh] rounded-[3rem] sm:rounded-[3.5rem] border-[8px] sm:border-[12px] border-slate-900 bg-slate-900 shadow-2xl overflow-hidden ring-4 ring-slate-800/10">
+              {/* Speaker / Notch */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-7 bg-slate-900 rounded-b-3xl z-50 flex items-center justify-center gap-1.5">
+                <div className="w-10 h-1 bg-white/10 rounded-full" />
+                <div className="w-2 h-2 rounded-full bg-white/10" />
+              </div>
 
-                <div className="flex flex-col items-center p-6 pb-9">
-                  <div className="w-full h-24 bg-primary-navy mb-[-48px]" />
-                  <div className="w-24 h-24 rounded-full border-4 border-white shadow-md overflow-hidden bg-slate-100 z-10">
-                    {data.mainPhoto ? (
-                      <img
-                        src={data.mainPhoto}
-                        alt={data.displayName || "Vendor avatar"}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-300">
-                        <MapPin size={32} strokeWidth={1} />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-4 text-center space-y-1">
-                    <h3 className="text-lg font-bold text-charcoal">{data.displayName || "Alex the Guide"}</h3>
-                    <p className="text-[12px] font-bold text-primary-navy uppercase tracking-wide">{tourTitle}</p>
-                  </div>
-
-                  <div className="w-full px-6 mt-6 space-y-3">
-                    {previewHighlights.map((item) => (
-                      <div
-                        key={item.label}
-                        className="h-10 bg-[#f8fafc] rounded-xl flex items-center px-4 gap-3 shadow-sm border border-slate-50"
-                      >
-                        {item.icon}
-                        <span className="text-[11px] font-bold text-charcoal/70">{item.label}</span>
-                      </div>
-                    ))}
-                  </div>
+              {/* Status Bar */}
+              <div className="absolute top-0 left-0 w-full h-11 flex items-center justify-between px-8 z-40 bg-white/80 backdrop-blur-md">
+                <span className="text-[13px] font-black text-slate-900">9:41</span>
+                <div className="flex items-center gap-1.5">
+                  <Signal size={14} className="text-slate-900" />
+                  <Wifi size={14} className="text-slate-900" />
+                  <Battery size={14} className="text-slate-900" />
                 </div>
               </div>
+
+              {/* Scrollable Content (LandingPageTemplate) */}
+              <div className="w-full h-full overflow-y-auto overflow-x-hidden bg-white custom-scrollbar-hide pt-11">
+                <div className="origin-top scale-[1.0] w-full min-h-full">
+                  <LandingPageTemplate record={mockRecord} />
+                </div>
+              </div>
+
+              {/* Home Indicator */}
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1.5 bg-slate-900/20 rounded-full z-40" />
             </div>
 
             <div className="bg-white border border-slate-100 rounded-3xl shadow-lg p-4 space-y-2">
@@ -130,7 +154,7 @@ const OnboardingPreview = ({ data, onBack, onPublish, onEdit, publishing }: Onbo
               <p className="text-xs uppercase tracking-[0.4em] text-primary-navy font-semibold">Experience details</p>
               <h2 className="text-2xl font-extrabold text-charcoal mt-4">{data.displayName || "Alex"}</h2>
               <p className="text-sm text-muted-foreground">{tourTitle}</p>
-              <p className="mt-4 text-sm text-muted-foreground leading-relaxed">{description}</p>
+              <p className="mt-4 text-sm text-muted-foreground leading-relaxed">{data.tour?.description}</p>
 
               <div className="grid gap-3 mt-6 sm:grid-cols-2">
                 {summaryStats.map((stat) => (

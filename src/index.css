@@ -141,3 +141,13 @@
   .label-caps {
     @apply text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground/80;
   }
+
+@layer utilities {
+  .custom-scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .custom-scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

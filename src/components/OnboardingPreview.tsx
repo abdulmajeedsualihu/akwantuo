@@ -1,4 +1,4 @@
-import { ChevronLeft, PartyPopper, CheckCircle2, MapPin } from "lucide-react";
+import { ChevronLeft, CheckCircle2, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface OnboardingPreviewProps {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, Sparkles, Zap, MessageSquare, Globe, Camera, Share2, Users, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, Sparkles, Zap, Globe, Camera, Share2, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import AkwantuoLogo from "./AkwantuoLogo";

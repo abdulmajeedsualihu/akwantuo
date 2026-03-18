@@ -1,4 +1,3 @@
-import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { buildTourSiteSlug, slugifyDisplayName } from "@/lib/share";

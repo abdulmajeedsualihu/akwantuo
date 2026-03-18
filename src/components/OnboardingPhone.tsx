@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { ArrowRight, ChevronLeft, MapPin, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AkwantuoLogo from "./AkwantuoLogo";
 import { cn } from "@/lib/utils";

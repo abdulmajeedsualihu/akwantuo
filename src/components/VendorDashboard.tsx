@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   LayoutDashboard, User, CalendarCheck, Settings, LogOut,
-  Eye, Ticket, Clock, TrendingUp, TrendingDown, ExternalLink,
+  Eye, Ticket, Clock, ExternalLink,
   Menu, Bell, Share2, Calendar, CheckCircle2, Copy, Home
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";

@@ -34,17 +34,9 @@ export const slugifyDisplayName = (displayName?: string) => {
     .replace(/^-+|-+$/g, "");
 };
 
-const normalizeUserId = (userId?: string) => (userId ?? "").replace(/[^a-z0-9]/gi, "");
-
 export const buildTourSiteSlug = (displayName?: string, _userId?: string) => {
   const baseSlug = slugifyDisplayName(displayName);
   return baseSlug || "tour";
-};
-
-export const buildGuideUrl = (displayName?: string) => {
-  const base = getSystemBaseUrl();
-  const slug = slugifyDisplayName(displayName);
-  return slug ? `${base}/${slug}` : base;
 };
 
 export const buildLandingUrl = (params: { slug?: string; displayName?: string }) => {

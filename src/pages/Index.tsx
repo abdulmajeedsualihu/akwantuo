@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import HeroLanding from "@/components/HeroLanding";
 import OnboardingPhone from "@/components/OnboardingPhone";

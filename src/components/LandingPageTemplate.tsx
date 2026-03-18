@@ -1,15 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { 
-  ArrowRight, 
-  Check, 
   MapPin, 
   Share2, 
   MessageSquare, 
   Calendar, 
   Users, 
   ChevronRight,
-  Globe,
   BadgeCheck,
   Menu,
   X

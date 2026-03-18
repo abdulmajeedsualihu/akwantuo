@@ -61,7 +61,7 @@ const TemplateSelector = ({ photos, onSelect }: TemplateSelectorProps) => {
               selected === t.id ? t.accent + " ring-2 ring-primary/20" : "border-border"
             }`}
           >
-            {/* Mock storefront preview */}
+            {/* Mock tour site preview */}
             <div className={`${t.id === "cultural" ? "kente-pattern" : t.bg} p-4 space-y-3`}>
               {/* Header */}
               <div className="flex items-center justify-between">

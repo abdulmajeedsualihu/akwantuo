@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import HeroLanding from "@/components/HeroLanding";
 import OnboardingPhone from "@/components/OnboardingPhone";
@@ -7,79 +7,115 @@ import PhotoUpload from "@/components/PhotoUpload";
 import FirstTour from "@/components/FirstTour";
 import OnboardingPreview from "@/components/OnboardingPreview";
 import OnboardingSuccess from "@/components/OnboardingSuccess";
-import CustomizationPanel from "@/components/CustomizationPanel";
+import CustomizationPanel, { StoreData } from "@/components/CustomizationPanel";
 import StorePreview from "@/components/StorePreview";
 import ViewToggle from "@/components/ViewToggle";
 import WhatsAppBubble from "@/components/WhatsAppBubble";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { saveOnboardingData, getLatestTourSites, LandingPageRecord } from "@/lib/onboardingService";
+import { supabase } from "@/integrations/supabase/client";
 
 type Step = "landing" | "phone" | "profile" | "photos" | "first-tour" | "preview" | "success" | "dashboard";
+const DEFAULT_PROFILE = {
+  displayName: "",
+  location: "",
+  phone: "",
+  bio: "",
+  languages: ["English", "Twi"],
+};
+const DEFAULT_PHOTOS = {
+  mainPhoto: "",
+  gallery: [] as string[],
+};
+const DEFAULT_TOUR = {
+  title: "",
+  duration: "1h",
+  price: "0.00",
+  description: "",
+  highlights: ["Knowledgeable Guide", "Hidden Gems", "Authentic Experience"],
+};
 
 const Index = () => {
   const { user } = useAuth();
   const [step, setStep] = useState<Step>(user ? "profile" : "landing");
   const [view, setView] = useState<"edit" | "preview">("edit");
   const [liteMode, setLiteMode] = useState(false);
-  
-  const [profileData, setProfileData] = useState({
-    displayName: "",
-    location: "",
-    phone: "",
-    bio: "",
-    languages: ["English", "Twi"],
-  });
 
-  const [photosData, setPhotosData] = useState({
-    mainPhoto: "",
-    gallery: [] as string[],
-  });
+  const [profileData, setProfileData] = useState(DEFAULT_PROFILE);
 
-  const [tourData, setTourData] = useState({
-    title: "",
-    duration: "1h",
-    price: "0.00",
-    description: "",
-    highlights: ["Historical Landmarks", "Local Cuisine"],
-  });
+  const [photosData, setPhotosData] = useState(DEFAULT_PHOTOS);
+
+  const [tourData, setTourData] = useState(DEFAULT_TOUR);
 
   const [isPublishing, setIsPublishing] = useState(false);
-  const [isPublished, setIsPublished] = useState(false);
+  const [landingSlug, setLandingSlug] = useState<string>();
+  const [latestTours, setLatestTours] = useState<LandingPageRecord[]>([]);
 
-  // Load persistence
   useEffect(() => {
-    const saved = localStorage.getItem("akwantuo_onboarding_state");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.profileData) setProfileData(parsed.profileData);
-        if (parsed.photosData) setPhotosData(parsed.photosData);
-        if (parsed.tourData) setTourData(parsed.tourData);
-        if (parsed.step && parsed.step !== "success") setStep(parsed.step);
-      } catch (e) {
-        console.error("Failed to load saved state", e);
-      }
+    if (step === "landing") {
+      getLatestTourSites(6).then(setLatestTours);
     }
-  }, []);
+  }, [step]);
+  const persistOnboarding = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const currentUser = user ?? session?.user;
 
-  // Save persistence
-  useEffect(() => {
-    const state = { profileData, photosData, tourData, step };
-    localStorage.setItem("akwantuo_onboarding_state", JSON.stringify(state));
-  }, [profileData, photosData, tourData, step]);
+    // Allow publishing if we have a session OR if we've verified a phone number (demo mode)
+    const effectiveUser = currentUser || profileData.phone;
+
+    if (!effectiveUser) {
+      toast.info("Please verify your phone number to publish your tours page.");
+      setStep("phone");
+      return null;
+    }
+
+    setIsPublishing(true);
+    try {
+      const record = await saveOnboardingData(effectiveUser, profileData, tourData, photosData);
+      setLandingSlug(record.slug);
+      return record;
+    } catch (error: any) {
+      console.error("Publishing error:", error);
+      const errorMessage = error?.message || error?.details || "Could not save your tour site. Please try again.";
+      toast.error(errorMessage);
+      return null;
+    } finally {
+      setIsPublishing(false);
+    }
+  }, [user, profileData, tourData, photosData, setStep]);
+
+  const handlePublish = useCallback(async () => {
+    const record = await persistOnboarding();
+    if (record) {
+      setStep("success");
+    }
+  }, [persistOnboarding]);
 
   if (step === "landing") {
-    return <HeroLanding onGetStarted={() => setStep("phone")} />;
+    return <HeroLanding onGetStarted={() => setStep("phone")} latestTours={latestTours} />;
   }
 
   if (step === "phone") {
-    return <OnboardingPhone onComplete={() => setStep("profile")} />;
+    return (
+      <OnboardingPhone
+        onComplete={(phone: string, profileData: any) => {
+          setProfileData((prev) => ({
+            ...prev,
+            phone,
+            displayName: profileData?.displayName || prev.displayName,
+            location: profileData?.location || prev.location,
+          }));
+          setStep("profile");
+        }}
+      />
+    );
   }
 
   if (step === "profile") {
     return (
-      <ProfileDetails 
+      <ProfileDetails
         initialData={profileData}
         onBack={() => setStep("phone")}
         onContinue={(data) => {
@@ -92,7 +128,7 @@ const Index = () => {
 
   if (step === "photos") {
     return (
-      <PhotoUpload 
+      <PhotoUpload
         onBack={() => setStep("profile")}
         onContinue={(data) => {
           setPhotosData(data);
@@ -105,7 +141,7 @@ const Index = () => {
 
   if (step === "first-tour") {
     return (
-      <FirstTour 
+      <FirstTour
         initialData={tourData}
         onBack={() => setStep("photos")}
         onContinue={(data) => {
@@ -118,19 +154,21 @@ const Index = () => {
 
   if (step === "preview") {
     return (
-      <OnboardingPreview 
+      <OnboardingPreview
         data={{ ...profileData, ...photosData, tour: tourData }}
         onBack={() => setStep("first-tour")}
         onEdit={() => setStep("profile")}
-        onPublish={() => setStep("success")}
+        onPublish={handlePublish}
+        publishing={isPublishing}
       />
     );
   }
 
   if (step === "success") {
     return (
-      <OnboardingSuccess 
+      <OnboardingSuccess
         displayName={profileData.displayName}
+        slug={landingSlug}
         onDone={() => setStep("dashboard")}
         onShare={() => toast.info("Sharing on WhatsApp...")}
       />
@@ -162,7 +200,7 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={() => setLiteMode(!liteMode)}
               className={cn(
                 "text-[10px] font-black px-3 py-1.5 rounded-full border transition-all tracking-widest uppercase",
@@ -184,6 +222,7 @@ const Index = () => {
             price={tourData.price}
             photo={photosData.mainPhoto}
             template="professional"
+            slug={landingSlug}
           />
         ) : (
           <>
@@ -193,40 +232,34 @@ const Index = () => {
               price={tourData.price}
               photo={photosData.mainPhoto}
               template="professional"
+              slug={landingSlug}
             />
             <div className={cn("space-y-4", liteMode && "opacity-60 grayscale")}>
-              <h2 className="text-[11px] font-black tracking-widest text-charcoal/60 uppercase px-1">Customize Your Page</h2>
-              <CustomizationPanel 
+              <h2 className="text-[11px] font-black tracking-widest text-charcoal/60 uppercase px-1">Customize Your Tour Site</h2>
+              <CustomizationPanel
                 data={{
                   businessName: profileData.displayName,
                   description: tourData.description,
                   price: tourData.price,
                   location: profileData.location
-                }} 
-                onChange={(newData: any) => {
+                }}
+                onChange={(newData: StoreData) => {
                   setProfileData(prev => ({ ...prev, displayName: newData.businessName, location: newData.location }));
                   setTourData(prev => ({ ...prev, description: newData.description, price: newData.price }));
-                }} 
+                }}
                 liteMode={liteMode}
                 onRegenerate={() => {
-                   toast.success("AI Content updated!");
+                  toast.success("AI Content updated!");
                 }}
               />
             </div>
-            
-            <Button 
-                onClick={() => {
-                    setIsPublishing(true);
-                    setTimeout(() => {
-                        setIsPublishing(false);
-                        setIsPublished(true);
-                        toast.success("Page updated successfully! 🎉");
-                    }, 1500);
-                }}
-                disabled={isPublishing}
-                className="w-full h-[4.5rem] bg-primary-navy hover:bg-primary-navy/90 rounded-2xl text-lg font-bold shadow-xl"
+
+            <Button
+              onClick={persistOnboarding}
+              disabled={isPublishing}
+              className="w-full h-[4.5rem] bg-primary-navy hover:bg-primary-navy/90 rounded-2xl text-lg font-bold shadow-xl"
             >
-                {isPublishing ? "Updating..." : "Update Page"}
+              {isPublishing ? "Updating..." : "Update Page"}
             </Button>
           </>
         )}
@@ -239,6 +272,7 @@ const Index = () => {
         price={tourData.price}
         photo={photosData.mainPhoto}
         visible={step === "dashboard"}
+        slug={landingSlug}
       />
     </div>
   );

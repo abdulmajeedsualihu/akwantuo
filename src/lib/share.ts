@@ -3,7 +3,12 @@ const DEFAULT_BASE_URL = "https://akwantuo.com";
 const stripTrailingSlash = (value: string) => value.replace(/\/+$/, "");
 
 export const getSystemBaseUrl = () => {
-  const envUrl = import.meta.env.VITE_SYSTEM_BASE_URL;
+  const envUrl =
+    import.meta.env.VITE_SYSTEM_BASE_URL ||
+    import.meta.env.VITE_PUBLIC_URL ||
+    import.meta.env.VITE_DEPLOYMENT_URL ||
+    import.meta.env.VITE_APP_URL;
+
   if (envUrl) {
     return stripTrailingSlash(envUrl);
   }
@@ -29,8 +34,40 @@ export const slugifyDisplayName = (displayName?: string) => {
     .replace(/^-+|-+$/g, "");
 };
 
-export const buildVendorUrl = (displayName?: string) => {
+const normalizeUserId = (userId?: string) => (userId ?? "").replace(/[^a-z0-9]/gi, "");
+
+export const buildTourSiteSlug = (displayName?: string, userId?: string) => {
+  const baseSlug = slugifyDisplayName(displayName);
+  const suffix = normalizeUserId(userId).slice(0, 6);
+
+  if (baseSlug && suffix) {
+    return `${baseSlug}-${suffix}`;
+  }
+
+  if (baseSlug) {
+    return baseSlug;
+  }
+
+  if (suffix) {
+    return suffix;
+  }
+
+  return "tour";
+};
+
+export const buildGuideUrl = (displayName?: string) => {
   const base = getSystemBaseUrl();
   const slug = slugifyDisplayName(displayName);
   return slug ? `${base}/${slug}` : base;
+};
+
+export const buildLandingUrl = (params: { slug?: string; displayName?: string }) => {
+  const base = getSystemBaseUrl();
+  const safeSlug = params.slug?.toString().trim() || slugifyDisplayName(params.displayName);
+
+  if (safeSlug) {
+    return `${base}/${safeSlug}`;
+  }
+
+  return base;
 };

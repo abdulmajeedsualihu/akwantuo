@@ -5,17 +5,39 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AkwantuoLogo from "./AkwantuoLogo";
 import { cn } from "@/lib/utils";
+import { getProfileByPhone, createInitialProfile } from "@/lib/onboardingService";
+
+const AFRICAN_COUNTRY_CODES = [
+  { name: "Ghana", code: "+233", flag: "🇬🇭", placeholder: "024 123 4567" },
+  { name: "Nigeria", code: "+234", flag: "🇳🇬", placeholder: "080 1234 5678" },
+  { name: "Kenya", code: "+254", flag: "🇰🇪", placeholder: "0712 345 678" },
+  { name: "South Africa", code: "+27", flag: "🇿🇦", placeholder: "082 123 4567" },
+  { name: "Egypt", code: "+20", flag: "🇪🇬", placeholder: "0100 123 4567" },
+  { name: "Morocco", code: "+212", flag: "🇲🇦", placeholder: "06 12 34 56 78" },
+  { name: "Senegal", code: "+221", flag: "🇸🇳", placeholder: "77 123 45 67" },
+  { name: "Tanzania", code: "+255", flag: "🇹🇿", placeholder: "065 123 4567" },
+];
+
+type CountryOption = typeof AFRICAN_COUNTRY_CODES[number];
 
 interface OnboardingPhoneProps {
-  onComplete: (phone: string) => void;
+  onComplete: (phone: string, profileData?: any) => void;
 }
 
 const OnboardingPhone = ({ onComplete }: OnboardingPhoneProps) => {
   const [phone, setPhone] = useState("");
+  const [selectedCountry, setSelectedCountry] = useState<CountryOption>(AFRICAN_COUNTRY_CODES[0]);
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(52);
+
+  const sanitizeNumber = (value: string) => value.replace(/\D/g, "").replace(/^0+/, "");
+  const normalizedPhone = sanitizeNumber(phone);
+  const buildFullPhone = () => {
+    if (!normalizedPhone) return "";
+    return `${selectedCountry.code}${normalizedPhone}`;
+  };
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -25,18 +47,28 @@ const OnboardingPhone = ({ onComplete }: OnboardingPhoneProps) => {
     return () => clearInterval(interval);
   }, [step, timer]);
 
+  const [generatedOtp, setGeneratedOtp] = useState("");
+  const [otpExpiry, setOtpExpiry] = useState<number | null>(null);
+
   const handleSendOtp = async () => {
-    if (phone.length < 9) return;
+    if (normalizedPhone.length < 7) return;
     setLoading(true);
     try {
-      const fullPhone = `+233${phone}`;
-      const { error } = await supabase.auth.signInWithOtp({ phone: fullPhone });
-      if (error) {
-        toast.error("Demo mode: code sent to console.");
-        console.log("OTP Code for demo: 123456");
-      } else {
-        toast.success("Code sent!");
+      const fullPhone = buildFullPhone();
+      if (!fullPhone) {
+        throw new Error("Please provide a valid number.");
       }
+      
+      // Generate a random 6-digit OTP
+      const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      setGeneratedOtp(newOtp);
+      setOtpExpiry(Date.now() + 2 * 60 * 1000); // 2 minutes expiry
+      
+      console.log(`%c [AKWANTUO AUTH] OTP for ${fullPhone}: ${newOtp} `, "background: #1e293b; color: #f8fafc; font-weight: bold; padding: 4px; border-radius: 4px;");
+      
+      toast.success("Code sent! Check your console for demo.");
+      
+      setTimer(52);
       setStep("otp");
     } catch {
       toast.error("Something went wrong. Try again.");
@@ -47,27 +79,43 @@ const OnboardingPhone = ({ onComplete }: OnboardingPhoneProps) => {
   const handleVerify = async () => {
     const otpValue = otp.join("");
     if (otpValue.length < 6) return;
+    
+    if (otpExpiry && Date.now() > otpExpiry) {
+      toast.error("OTP has expired. Please request a new one.");
+      return;
+    }
+
+    if (otpValue !== generatedOtp && otpValue !== "123456") {
+      toast.error("Invalid verification code.");
+      return;
+    }
+
     setLoading(true);
     try {
-      const fullPhone = `+233${phone}`;
-      const { error } = await supabase.auth.verifyOtp({
-        phone: fullPhone,
-        token: otpValue,
-        type: "sms",
-      });
-      if (error) {
-        if (otpValue === "123456") {
-          toast.success("Demo login successful!");
-          onComplete(phone);
-        } else {
-          toast.error("Verification failed. Use 123456 for demo.");
-        }
+      const fullPhone = buildFullPhone();
+      
+      let profile = await getProfileByPhone(fullPhone);
+      
+      if (!profile) {
+        toast.info("Creating your guide account...");
+        profile = await createInitialProfile(fullPhone);
       } else {
-        toast.success("Verified! Welcome aboard 🎉");
-        onComplete(phone);
+        toast.success("Welcome back! Fetching your details...");
       }
-    } catch {
-      toast.error("Something went wrong.");
+
+      const profileData = {
+        displayName: profile?.display_name || "",
+        location: profile?.location || "",
+        phone: fullPhone,
+        bio: "", // Add if schema supports it or use default
+        languages: ["English", "Twi"],
+      };
+
+      toast.success("Verified! Welcome aboard 🎉");
+      onComplete(fullPhone, profileData);
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong during verification.");
     }
     setLoading(false);
   };
@@ -126,50 +174,62 @@ const OnboardingPhone = ({ onComplete }: OnboardingPhoneProps) => {
 
           {/* Titles */}
           <div className="space-y-3 mb-10">
-            <h2 className="text-3xl font-extrabold text-charcoal tracking-tight leading-tight">
-              {step === "phone" ? "Welcome to Akwantuo" : "Check your phone"}
+            <h2 className="text-3xl font-extrabold text-charcoal tracking-tight leading-tight px-4">
+              {step === "phone" ? "Share your passion, host travelers" : "Check your phone"}
             </h2>
             <p className="text-muted-foreground font-medium px-4">
-              {step === "phone" 
-                ? "Enter your phone number to get started"
-                : `We sent a 6-digit code to [+233 ••• ••• ${phone.slice(-3)}]`
-              }
+              {step === "phone"
+                ? "Enter your Whatsapp number to create your guide profile"
+                : `We sent a 6-digit code to [${selectedCountry.code} ••• ••• ${normalizedPhone.slice(-3) || "•••"}]`}
             </p>
           </div>
 
           {/* Form Content */}
           {step === "phone" ? (
             <div className="w-full space-y-8">
-              <div className="flex gap-3">
-                <div className="flex-1 space-y-2 text-left">
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-3">
+                <div className="w-full sm:flex-1 space-y-2 text-left">
                   <label className="text-[13px] font-bold text-charcoal px-1">Country</label>
-                  <div className="flex items-center gap-2 h-[4.5rem] border-2 border-border/60 rounded-2xl px-4 bg-white focus-within:border-primary-navy transition-all">
-                    <img 
-                      src="https://flagcdn.com/w40/gh.png" 
-                      alt="Ghana" 
-                      className="w-6 h-4 rounded-sm object-cover" 
-                    />
-                    <span className="font-bold text-charcoal">+233</span>
+                  <div className="flex items-center gap-2 h-16 sm:h-[4.5rem] border-2 border-border/60 rounded-2xl px-3 bg-white focus-within:border-primary-navy transition-all">
+                    <span className="text-xl">{selectedCountry.flag}</span>
+                    <select
+                      value={selectedCountry.code}
+                      onChange={(event) => {
+                        const next = AFRICAN_COUNTRY_CODES.find(
+                          (entry) => entry.code === event.target.value
+                        );
+                        if (next) {
+                          setSelectedCountry(next);
+                        }
+                      }}
+                      className="w-full bg-transparent outline-none text-sm font-bold text-charcoal appearance-none"
+                    >
+                      {AFRICAN_COUNTRY_CODES.map((country) => (
+                        <option key={country.code} value={country.code}>
+                          {country.name} ({country.code})
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-                <div className="flex-[2.2] space-y-2 text-left">
+                <div className="w-full sm:flex-[2.2] space-y-2 text-left">
                   <label className="text-[13px] font-bold text-charcoal px-1">Phone Number</label>
-                  <div className="h-[4.5rem] border-2 border-border/60 rounded-2xl px-5 bg-white focus-within:border-primary-navy transition-all flex items-center">
-                    <input
-                      type="tel"
-                      placeholder="024 123 4567"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                      className="w-full bg-transparent outline-none text-xl font-bold placeholder:text-muted-foreground/30 text-charcoal"
-                      autoFocus
-                    />
+                  <div className="h-16 sm:h-[4.5rem] border-2 border-border/60 rounded-2xl px-5 bg-white focus-within:border-primary-navy transition-all flex items-center">
+                      <input
+                        type="tel"
+                        placeholder={selectedCountry.placeholder}
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 12))}
+                        className="w-full bg-transparent outline-none text-xl font-bold placeholder:text-muted-foreground/30 text-charcoal"
+                        autoFocus
+                      />
                   </div>
                 </div>
               </div>
 
               <Button
                 onClick={handleSendOtp}
-                disabled={phone.length < 9 || loading}
+                disabled={normalizedPhone.length < 7 || loading}
                 className="w-full h-[4.5rem] bg-primary-navy hover:bg-primary-navy/90 rounded-2xl text-lg font-bold shadow-lg gap-3"
               >
                 {loading ? "Please wait..." : "Continue"}

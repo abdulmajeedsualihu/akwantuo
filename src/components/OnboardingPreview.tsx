@@ -6,9 +6,10 @@ interface OnboardingPreviewProps {
   onBack: () => void;
   onPublish: () => void;
   onEdit: () => void;
+  publishing?: boolean;
 }
 
-const OnboardingPreview = ({ data, onBack, onPublish, onEdit }: OnboardingPreviewProps) => {
+const OnboardingPreview = ({ data, onBack, onPublish, onEdit, publishing }: OnboardingPreviewProps) => {
   const languages =
     Array.isArray(data.languages) && data.languages.length
       ? data.languages.join(", ")
@@ -40,25 +41,25 @@ const OnboardingPreview = ({ data, onBack, onPublish, onEdit }: OnboardingPrevie
   ];
 
   return (
-    <div className="min-h-screen bg-[#f1f4f8] flex justify-center px-4 py-8 sm:px-6">
-      <div className="w-full max-w-6xl flex flex-col gap-8">
-        <header className="flex items-center justify-between">
+    <div className="min-h-screen bg-[#f1f4f8] flex justify-center px-4 py-8 sm:px-8 md:py-16">
+      <div className="w-full max-w-6xl flex flex-col gap-8 md:gap-12">
+        <header className="flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-4 text-center sm:text-left">
           <button
             onClick={onBack}
-            className="p-2 rounded-full bg-white shadow-sm border border-slate-200 text-charcoal hover:bg-slate-50 transition"
+            className="p-2 rounded-full bg-white shadow-sm border border-slate-200 text-charcoal hover:bg-slate-50 transition self-start sm:self-auto"
           >
             <ChevronLeft size={24} />
           </button>
-          <div className="text-center flex-1">
+          <div className="flex-1">
             <p className="text-[11px] uppercase tracking-[0.3em] text-muted-foreground mb-2">Onboarding</p>
-            <h1 className="text-xl font-bold text-charcoal">Your page is ready</h1>
-            <p className="text-sm text-muted-foreground">Take a look at how your profile will appear to the public.</p>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-charcoal tracking-tight">Your page is ready</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">Take a look at how your profile will appear to the public.</p>
           </div>
-          <div className="space-y-1 text-right">
-            <div className="h-2 rounded-full bg-primary-navy/20" />
-            <div className="h-2 rounded-full bg-primary-navy/20" />
-            <div className="h-2 rounded-full bg-primary-navy/20" />
-            <div className="h-2 rounded-full bg-primary-navy w-12" />
+          <div className="hidden sm:flex flex-col gap-1 items-end">
+            <div className="h-1.5 rounded-full bg-primary-navy/20 w-16" />
+            <div className="h-1.5 rounded-full bg-primary-navy/20 w-12" />
+            <div className="h-1.5 rounded-full bg-primary-navy/20 w-8" />
+            <div className="h-1.5 rounded-full bg-primary-navy w-20" />
           </div>
         </header>
 
@@ -91,7 +92,7 @@ const OnboardingPreview = ({ data, onBack, onPublish, onEdit }: OnboardingPrevie
                   </div>
 
                   <div className="mt-4 text-center space-y-1">
-                    <h3 className="text-lg font-bold text-charcoal">{data.displayName || "Alex Rivers"}</h3>
+                    <h3 className="text-lg font-bold text-charcoal">{data.displayName || "Alex the Guide"}</h3>
                     <p className="text-[12px] font-bold text-primary-navy uppercase tracking-wide">{tourTitle}</p>
                   </div>
 
@@ -115,11 +116,11 @@ const OnboardingPreview = ({ data, onBack, onPublish, onEdit }: OnboardingPrevie
                 Preview summary
               </p>
               <p className="text-base font-semibold text-charcoal">
-                {data.displayName || "Alex Rivers"} is ready to share {data.tour?.title || "an authentic tour"}.
+                {data.displayName || "Alex"} is ready to share {data.tour?.title || "an authentic experience"}.
               </p>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                The live preview reflects your selections and makes it easy for tourists to understand what you
-                deliver and how to book.
+                The live preview reflects your selections and makes it easy for travelers to understand what you
+                deliver and how to book their next adventure.
               </p>
             </div>
           </div>
@@ -127,7 +128,7 @@ const OnboardingPreview = ({ data, onBack, onPublish, onEdit }: OnboardingPrevie
           <div className="space-y-6">
             <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-lg">
               <p className="text-xs uppercase tracking-[0.4em] text-primary-navy font-semibold">Experience details</p>
-              <h2 className="text-2xl font-extrabold text-charcoal mt-4">{data.displayName || "Alex Rivers"}</h2>
+              <h2 className="text-2xl font-extrabold text-charcoal mt-4">{data.displayName || "Alex"}</h2>
               <p className="text-sm text-muted-foreground">{tourTitle}</p>
               <p className="mt-4 text-sm text-muted-foreground leading-relaxed">{description}</p>
 
@@ -160,9 +161,10 @@ const OnboardingPreview = ({ data, onBack, onPublish, onEdit }: OnboardingPrevie
         <div className="grid gap-3 sm:grid-cols-2">
           <Button
             onClick={onPublish}
+            disabled={publishing}
             className="w-full h-[4.5rem] bg-primary-navy hover:bg-primary-navy/90 rounded-2xl text-lg font-bold shadow-lg"
           >
-            Publish my page
+            {publishing ? "Publishing..." : "Publish my page"}
           </Button>
           <Button
             variant="outline"

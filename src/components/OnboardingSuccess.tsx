@@ -1,19 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { X, Check, Link2, Download, MessageCircle } from "lucide-react";
+import { X, Check, Link2, Download, MessageCircle, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-import { buildVendorUrl, slugifyDisplayName } from "@/lib/share";
+import { buildLandingUrl, getSystemBaseUrl, slugifyDisplayName } from "@/lib/share";
 
 interface OnboardingSuccessProps {
   onDone: () => void;
   onShare: () => void;
   displayName?: string;
+  slug?: string;
 }
 
-const OnboardingSuccess = ({ onDone, onShare, displayName = "" }: OnboardingSuccessProps) => {
-  const shareUrl = useMemo(() => buildVendorUrl(displayName), [displayName]);
-  const slug = useMemo(() => slugifyDisplayName(displayName) || "storefront", [displayName]);
+const OnboardingSuccess = ({ onDone, onShare, displayName = "", slug }: OnboardingSuccessProps) => {
+  const computedSlug = useMemo(
+    () => slug?.toString().trim() || slugifyDisplayName(displayName),
+    [slug, displayName]
+  );
+  const shareUrl = useMemo(
+    () => buildLandingUrl({ slug: computedSlug || undefined, displayName }),
+    [computedSlug, displayName]
+  );
+  const fallbackSlug = computedSlug || "tour";
+  const baseDomain = useMemo(() => getSystemBaseUrl(), []);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const [downloading, setDownloading] = useState(false);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -48,17 +57,41 @@ const OnboardingSuccess = ({ onDone, onShare, displayName = "" }: OnboardingSucc
     }, 2000);
   };
 
-  const handleCopy = async () => {
-    if (!shareUrl) return;
-    if (typeof navigator === "undefined" || !navigator.clipboard) {
-      setCopyState("failed");
-      toast.error("Copying is not available in this browser.");
-      scheduleCopyReset();
-      return;
+  const fallbackCopyText = (text: string) => {
+    if (typeof document === "undefined") {
+      return false;
     }
 
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "absolute";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.select();
+    textarea.setSelectionRange(0, 99999);
+
+    const success = document.execCommand("copy");
+    document.body.removeChild(textarea);
+    return success;
+  };
+
+  const handleCopy = async () => {
+    if (!shareUrl) return;
+
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      let copied = false;
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        copied = true;
+      } else {
+        copied = fallbackCopyText(shareUrl);
+      }
+
+      if (!copied) {
+        throw new Error("Native clipboard unavailable");
+      }
+
       setCopyState("copied");
       toast.success("Link copied to clipboard");
     } catch {
@@ -81,7 +114,7 @@ const OnboardingSuccess = ({ onDone, onShare, displayName = "" }: OnboardingSucc
       const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = objectUrl;
-      link.download = `${slug}-qr.png`;
+      link.download = `${fallbackSlug}-qr.png`;
       link.click();
       URL.revokeObjectURL(objectUrl);
       toast.success("QR code downloaded");
@@ -93,28 +126,30 @@ const OnboardingSuccess = ({ onDone, onShare, displayName = "" }: OnboardingSucc
   };
 
   const handleShare = () => {
-    if (!shareUrl || typeof window === "undefined") return;
-    const encoded = encodeURIComponent(`Hi! Check out my page: ${shareUrl}`);
+    if (!shareLinkHref || typeof window === "undefined") return;
+    const encoded = encodeURIComponent(`Hi! Check out my page: ${shareLinkHref}`);
     window.open(`https://wa.me/?text=${encoded}`, "_blank");
     onShare();
   };
 
+  const shareLinkHref = shareUrl || `${baseDomain}/${fallbackSlug}`;
+  const copyDisabled = !shareUrl;
   const copyLabel =
     copyState === "copied" ? "Link copied!" : copyState === "failed" ? "Try again" : "Copy link";
   const downloadDisabled = !qrImageUrl || downloading;
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center p-4">
-      <div className="w-full max-w-[400px] flex flex-col h-full animate-in zoom-in-95 duration-700">
+    <div className="min-h-screen bg-white flex flex-col items-center p-4 sm:p-8 md:p-12">
+      <div className="w-full max-w-[440px] flex flex-col h-full animate-in zoom-in-95 duration-700">
         {/* Header */}
-        <header className="flex items-center justify-between py-6 border-b border-slate-100">
+        <header className="flex items-center justify-between py-4 sm:py-6 border-b border-slate-100 mb-8">
           <button
             onClick={onDone}
             className="p-2 -ml-2 text-charcoal hover:bg-slate-50 rounded-full transition-colors"
           >
             <X size={24} />
           </button>
-          <h1 className="text-lg font-bold text-charcoal flex-1 text-center mr-8">Success</h1>
+          <h1 className="text-lg font-black tracking-widest uppercase text-primary-navy flex-1 text-center mr-8">Celebration</h1>
         </header>
 
         {/* Success Icon */}
@@ -136,20 +171,42 @@ const OnboardingSuccess = ({ onDone, onShare, displayName = "" }: OnboardingSucc
               You're live!
             </h2>
             <p className="text-muted-foreground font-medium text-[15px] px-8 leaded-relaxed">
-              Your page is live at the link below. Share it with tourists to start getting bookings.
+              Your tour site is live! Share it with travelers to start getting bookings.
             </p>
           </div>
         </div>
 
         {/* Link Share Box */}
-        <div className="bg-[#f8fafc] rounded-2xl p-5 border border-slate-100 mb-8 space-y-4">
-          <div className="flex items-center gap-3 bg-white rounded-xl p-3 border border-slate-100 shadow-sm">
-            <Link2 size={20} className="text-primary-navy" />
-            <span className="flex-1 text-[14px] font-bold text-charcoal truncate break-words">{shareUrl}</span>
+        <div className="bg-[#f8fafc] rounded-2xl p-5 border border-slate-100 mb-8">
+          <div className="flex items-start gap-4 bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
+            <div className="text-primary-navy">
+              <Link2 size={20} />
+            </div>
+            <div className="flex-1 space-y-1">
+              <p className="text-[11px] uppercase tracking-[0.4em] text-muted-foreground/80">
+                Your experience site
+              </p>
+              <a
+                href={shareLinkHref}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[14px] font-bold text-charcoal break-words hover:text-primary-navy transition-colors"
+              >
+                {shareLinkHref}
+              </a>
+              <p className="text-[11px] text-muted-foreground">
+                Hosted on <span className="font-semibold text-charcoal">{baseDomain}</span>
+              </p>
+            </div>
             <button
               type="button"
               onClick={handleCopy}
-              className="h-10 px-5 bg-white border border-slate-100 rounded-lg text-primary-navy font-bold text-[14px] hover:bg-slate-50 transition-all shadow-sm"
+              disabled={copyDisabled}
+              className={`h-10 px-5 bg-white border border-slate-100 rounded-lg font-black text-[14px] ${
+                copyDisabled
+                  ? "text-muted-foreground/70 cursor-not-allowed opacity-60"
+                  : "text-primary-navy hover:bg-slate-50 transition-all shadow-sm"
+              }`}
             >
               {copyLabel}
             </button>
@@ -163,7 +220,7 @@ const OnboardingSuccess = ({ onDone, onShare, displayName = "" }: OnboardingSucc
               {qrImageUrl ? (
                 <img
                   src={qrImageUrl}
-                  alt="Storefront QR code"
+                  alt="Experience QR code"
                   className="w-full h-full object-cover rounded-2xl"
                   loading="lazy"
                 />
@@ -191,7 +248,19 @@ const OnboardingSuccess = ({ onDone, onShare, displayName = "" }: OnboardingSucc
             onClick={onDone}
             className="w-full h-[4.5rem] bg-primary-navy hover:bg-primary-navy/90 rounded-2xl text-lg font-bold shadow-lg"
           >
-            Go to my dashboard
+            Go to my experience desk
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (shareUrl) {
+                window.open(shareUrl, "_blank");
+              }
+            }}
+            className="w-full h-[4.5rem] rounded-2xl text-lg font-bold shadow-lg border-white/30 text-white/90 flex items-center justify-center gap-2"
+          >
+            <ArrowUpRight size={20} />
+            View live page
           </Button>
           <Button
             onClick={handleShare}

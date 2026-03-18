@@ -2,7 +2,7 @@ import { MessageSquare, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMemo, useState } from "react";
 
-import { buildVendorUrl } from "@/lib/share";
+import { buildLandingUrl } from "@/lib/share";
 
 interface StorePreviewProps {
   businessName: string;
@@ -12,6 +12,7 @@ interface StorePreviewProps {
   location: string;
   photo?: string;
   template: string;
+  slug?: string;
 }
 
 const StorePreview = ({
@@ -22,9 +23,13 @@ const StorePreview = ({
   location,
   photo,
   template,
+  slug,
 }: StorePreviewProps) => {
   const [copied, setCopied] = useState(false);
-  const shareUrl = useMemo(() => buildVendorUrl(businessName), [businessName]);
+  const shareUrl = useMemo(
+    () => buildLandingUrl({ slug, displayName: businessName }),
+    [businessName, slug]
+  );
 
   const handleCopy = () => {
     if (!shareUrl) return;
@@ -63,7 +68,7 @@ const StorePreview = ({
                 </span>
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">{businessName || "Your Shop"}</p>
+                <p className="text-sm font-semibold text-foreground">{businessName || "Your Tour Site"}</p>
                 <div className="flex items-center gap-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                   <span className="text-xs text-primary font-medium">Live</span>
@@ -79,14 +84,14 @@ const StorePreview = ({
                 <img src={photo} alt={businessName} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full kente-pattern flex items-center justify-center">
-                  <span className="text-muted-foreground text-sm">Your product photo</span>
+                  <span className="text-muted-foreground text-sm">Your experience photo</span>
                 </div>
               )}
             </div>
 
             <div className="space-y-2">
               <div className="flex items-start justify-between">
-                <h3 className="text-lg font-bold text-foreground">{businessName || "Product Name"}</h3>
+                <h3 className="text-lg font-bold text-foreground">{businessName || "Experience Name"}</h3>
                 <div className="flex items-baseline gap-1 shrink-0">
                   <span className="text-xl font-bold text-primary price">
                     GH₵{price || "0"}
@@ -111,7 +116,7 @@ const StorePreview = ({
 
             {/* CTA in preview */}
             <div className="bg-primary/10 rounded-xl p-3 text-center">
-              <p className="text-sm font-semibold text-primary">💬 Message to Order</p>
+              <p className="text-sm font-semibold text-primary">💬 Message to Book</p>
             </div>
           </div>
         </div>
@@ -126,7 +131,7 @@ const StorePreview = ({
 
         <Button variant="outline" size="default" className="w-full" onClick={handleCopy}>
           {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-          {copied ? "Link Copied!" : "Copy Store Link"}
+          {copied ? "Link Copied!" : "Copy Site Link"}
         </Button>
       </div>
     </div>

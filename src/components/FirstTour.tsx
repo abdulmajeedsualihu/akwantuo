@@ -33,10 +33,10 @@ const FirstTour = ({ initialData, onBack, onContinue }: FirstTourProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f1f4f8] flex flex-col items-center p-4">
-      <div className="w-full max-w-[400px] flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="min-h-screen bg-[#f1f4f8] flex flex-col items-center p-4 sm:p-8 md:p-12">
+      <div className="w-full max-w-[440px] flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
         {/* Header */}
-        <header className="flex items-center justify-between py-6">
+        <header className="flex items-center justify-between py-4 sm:py-6">
           <button 
             onClick={onBack}
             className="p-2 -ml-2 text-charcoal hover:bg-white/50 rounded-full transition-colors"
@@ -47,19 +47,19 @@ const FirstTour = ({ initialData, onBack, onContinue }: FirstTourProps) => {
         </header>
 
         {/* Progress Bar */}
-        <div className="flex justify-center gap-1.5 mb-10">
+        <div className="flex justify-center gap-1.5 mb-8 sm:mb-12">
           <div className="h-1.5 w-10 rounded-full bg-primary-navy/20" />
           <div className="h-1.5 w-10 rounded-full bg-primary-navy/20" />
           <div className="h-1.5 w-16 rounded-full bg-primary-navy" />
         </div>
 
         {/* Page Titles */}
-        <div className="space-y-3 mb-8">
-          <h2 className="text-[32px] font-extrabold text-charcoal tracking-tight leading-tight">
-            Add your first tour
+        <div className="space-y-3 mb-8 sm:mb-10 sm:text-center">
+          <h2 className="text-[28px] sm:text-[36px] font-extrabold text-charcoal tracking-tight leading-tight">
+            Create your first experience
           </h2>
-          <p className="text-muted-foreground font-medium text-[16px]">
-            You can add more tours later from your dashboard.
+          <p className="text-muted-foreground font-medium text-[15px] sm:text-[17px]">
+            You can add more tours and activities later from your dashboard.
           </p>
         </div>
 
@@ -68,12 +68,12 @@ const FirstTour = ({ initialData, onBack, onContinue }: FirstTourProps) => {
           {/* Tour Title */}
           <div className="space-y-2">
             <label className="text-[11px] font-black tracking-widest text-charcoal/60 uppercase px-1">
-              Tour title
+              Experience Title
             </label>
             <div className="h-16 bg-white border border-transparent rounded-2xl px-5 flex items-center shadow-sm focus-within:border-primary-navy transition-all">
               <input 
                 type="text" 
-                placeholder="Accra City Walking Tour"
+                placeholder="e.g. Cape Coast Castle History Walk"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full bg-transparent outline-none text-[15px] font-semibold text-charcoal placeholder:text-muted-foreground/40"

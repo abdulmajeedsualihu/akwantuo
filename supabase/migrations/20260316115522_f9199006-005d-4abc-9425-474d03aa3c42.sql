@@ -1,15 +1,15 @@
 -- Create profiles table
 CREATE TABLE public.profiles (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
-  phone TEXT,
-  display_name TEXT,
+  user_id UUID NOT NULL UNIQUE,
+  phone TEXT UNIQUE,
+  display_name TEXT UNIQUE,
   business_category TEXT,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY; -- Disabled for demo mode
 
 CREATE POLICY "Users can view their own profile" ON public.profiles FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert their own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
@@ -18,7 +18,7 @@ CREATE POLICY "Users can update their own profile" ON public.profiles FOR UPDATE
 -- Create storefronts table
 CREATE TABLE public.storefronts (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL UNIQUE,
   business_name TEXT NOT NULL,
   description TEXT,
   template TEXT NOT NULL DEFAULT 'professional',
@@ -29,7 +29,7 @@ CREATE TABLE public.storefronts (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
-ALTER TABLE public.storefronts ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.storefronts ENABLE ROW LEVEL SECURITY; -- Disabled for demo mode
 
 CREATE POLICY "Users can view their own storefronts" ON public.storefronts FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Public can view live storefronts" ON public.storefronts FOR SELECT USING (is_live = true);

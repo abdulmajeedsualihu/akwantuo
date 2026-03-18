@@ -47,10 +47,10 @@ const PhotoUpload = ({ onBack, onContinue, onSkip }: PhotoUploadProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f1f4f8] flex flex-col items-center p-4">
-      <div className="w-full max-w-[400px] flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="min-h-screen bg-[#f1f4f8] flex flex-col items-center p-4 sm:p-8 md:p-12">
+      <div className="w-full max-w-[440px] flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
         {/* Header */}
-        <header className="flex items-center justify-between py-6">
+        <header className="flex items-center justify-between py-4 sm:py-6">
           <button 
             onClick={onBack}
             className="p-2 -ml-2 text-charcoal hover:bg-white/50 rounded-full transition-colors"
@@ -60,7 +60,7 @@ const PhotoUpload = ({ onBack, onContinue, onSkip }: PhotoUploadProps) => {
         </header>
 
         {/* Progress Bar */}
-        <div className="flex justify-center gap-1.5 mb-10">
+        <div className="flex justify-center gap-1.5 mb-8 sm:mb-12">
           <div className="h-1.5 w-12 rounded-full bg-primary-navy" />
           <div className="h-1.5 w-6 rounded-full bg-primary-navy/20" />
           <div className="h-1.5 w-6 rounded-full bg-primary-navy/20" />
@@ -68,11 +68,11 @@ const PhotoUpload = ({ onBack, onContinue, onSkip }: PhotoUploadProps) => {
         </div>
 
         {/* Page Titles */}
-        <div className="space-y-2 mb-10 text-center">
-          <h2 className="text-[32px] font-extrabold text-charcoal tracking-tight leading-tight">
+        <div className="space-y-3 mb-8 sm:mb-10 sm:text-center">
+          <h2 className="text-[28px] sm:text-[36px] font-extrabold text-charcoal tracking-tight leading-tight">
             Add your photos
           </h2>
-          <p className="text-muted-foreground font-medium text-[16px]">
+          <p className="text-muted-foreground font-medium text-[15px] sm:text-[17px]">
             A great photo is your first impression.
           </p>
         </div>
@@ -100,12 +100,12 @@ const PhotoUpload = ({ onBack, onContinue, onSkip }: PhotoUploadProps) => {
               <Plus size={20} strokeWidth={3} />
             </div>
           </div>
-          <p className="text-[14px] font-bold text-charcoal mt-4">Main profile photo</p>
+          <p className="text-[14px] font-bold text-charcoal mt-4">Main guide photo</p>
         </div>
 
         {/* Gallery Grid */}
         <div className="space-y-4 mb-10">
-          <h3 className="text-[18px] font-extrabold text-charcoal px-1">Gallery photos</h3>
+          <h3 className="text-[18px] font-extrabold text-charcoal px-1">Experience Gallery</h3>
           <div className="grid grid-cols-3 gap-3">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="aspect-square relative">

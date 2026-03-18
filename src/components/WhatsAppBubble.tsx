@@ -1,21 +1,26 @@
+import { useMemo } from "react";
 import { MessageSquare, ExternalLink, ChevronRight } from "lucide-react";
 
-import { buildVendorUrl } from "@/lib/share";
+import { buildLandingUrl } from "@/lib/share";
 
 interface WhatsAppBubbleProps {
   businessName: string;
   price: string;
   photo?: string;
   visible: boolean;
+  slug?: string;
 }
 
-const WhatsAppBubble = ({ businessName, price, photo, visible }: WhatsAppBubbleProps) => {
-  if (!visible) return null;
+const WhatsAppBubble = ({ businessName, price, photo, visible, slug }: WhatsAppBubbleProps) => {
+  const shareUrl = useMemo(
+    () => buildLandingUrl({ slug, displayName: businessName }),
+    [slug, businessName]
+  );
 
-  const shareUrl = buildVendorUrl(businessName);
+  if (!visible) return null;
   const whatsappMessage = encodeURIComponent(
     [
-      `Hi! Check out my shop ${businessName || "my storefront"}: ${shareUrl}`,
+      `Hi! Check out my experience site ${businessName || "at Akwantuo"}: ${shareUrl}`,
       price ? `Price: GH₵${price}` : null,
     ]
       .filter(Boolean)
@@ -42,7 +47,7 @@ const WhatsAppBubble = ({ businessName, price, photo, visible }: WhatsAppBubbleP
           )}
 
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-foreground truncate">{businessName || "Your Shop"}</p>
+            <p className="text-sm font-semibold text-foreground truncate">{businessName || "Your Experience"}</p>
             <p className="text-xs text-muted-foreground">
               {price ? `GH₵${price}` : "Set your price"}
             </p>

@@ -1,15 +1,16 @@
-import { UtensilsCrossed, Palette, Shirt, Wrench, Smartphone } from "lucide-react";
+import { Mountain, Map, UtensilsCrossed, Palette, Leaf, Camera } from "lucide-react";
 
 interface CategorySelectorProps {
   onSelect: (category: string) => void;
 }
 
 const categories = [
+  { id: "adventure", label: "Adventure", icon: Mountain },
+  { id: "culture", label: "Culture & History", icon: Map },
   { id: "food", label: "Food & Drinks", icon: UtensilsCrossed },
-  { id: "crafts", label: "Crafts & Art", icon: Palette },
-  { id: "clothing", label: "Clothing", icon: Shirt },
-  { id: "services", label: "Services", icon: Wrench },
-  { id: "electronics", label: "Electronics", icon: Smartphone },
+  { id: "arts", label: "Arts & Crafts", icon: Palette },
+  { id: "nature", label: "Nature & Wildlife", icon: Leaf },
+  { id: "photography", label: "Photography", icon: Camera },
 ];
 
 const CategorySelector = ({ onSelect }: CategorySelectorProps) => {
@@ -17,8 +18,8 @@ const CategorySelector = ({ onSelect }: CategorySelectorProps) => {
     <div className="flex flex-col items-center justify-center min-h-screen px-6 py-8">
       <div className="w-full max-w-sm space-y-8">
         <div className="space-y-2 text-center">
-          <h1 className="text-display tracking-tight">What do you sell?</h1>
-          <p className="text-muted-foreground text-body">Pick your business type</p>
+          <h1 className="text-display tracking-tight text-3xl font-extrabold">What's your experience?</h1>
+          <p className="text-muted-foreground text-body font-medium">Pick your niche to help travelers find you</p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">

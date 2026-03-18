@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-interface StoreData {
+export interface StoreData {
   businessName: string;
   description: string;
   price: string;
@@ -56,10 +56,10 @@ const CustomizationPanel = ({ data, onChange, liteMode, onRegenerate }: Customiz
 
   return (
     <div className="space-y-3">
-      <AccordionSection title="Business Info" defaultOpen>
+      <AccordionSection title="Experience Info" defaultOpen>
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-muted-foreground font-medium mb-1 block">Business Name</label>
+            <label className="text-xs text-muted-foreground font-medium mb-1 block">Tour/Guide Name</label>
             <div className="flex items-center gap-2 border-2 border-border rounded-xl px-3 h-12 focus-within:border-primary transition-colors bg-background">
               <input
                 type="text"
@@ -110,7 +110,7 @@ const CustomizationPanel = ({ data, onChange, liteMode, onRegenerate }: Customiz
           </div>
 
           <div className="flex items-center justify-between py-2">
-            <span className="text-sm font-medium">Price is negotiable</span>
+            <span className="text-sm font-medium">Price is flexible</span>
             <button
               onClick={() => update("negotiable", !data.negotiable)}
               className={`w-12 h-7 rounded-pill transition-colors press-feedback ${
@@ -135,7 +135,7 @@ const CustomizationPanel = ({ data, onChange, liteMode, onRegenerate }: Customiz
             value={data.location}
             onChange={(e) => update("location", e.target.value)}
             className={`flex-1 bg-transparent outline-none text-sm font-medium ${liteMode ? 'transition-none' : ''}`}
-            placeholder="e.g. Makola Market, Accra"
+            placeholder="e.g. Cape Coast Castle, Ghana"
           />
         </div>
       </AccordionSection>

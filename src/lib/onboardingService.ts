@@ -268,3 +268,26 @@ export const getLatestTourSites = async (limit = 6): Promise<LandingPageRecord[]
 
   return results;
 };
+
+/** Fetch the storefront slug for a returning vendor by their phone number. */
+export const getStorefrontByPhone = async (phone: string): Promise<string | null> => {
+  // 1. Look up the profile to get user_id
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("user_id")
+    .eq("phone", phone)
+    .maybeSingle();
+
+  if (profileError || !profile?.user_id) return null;
+
+  // 2. Look up their storefront
+  const { data: storefront, error: sfError } = await supabase
+    .from("storefronts")
+    .select("business_name, user_id")
+    .eq("user_id", profile.user_id)
+    .maybeSingle();
+
+  if (sfError || !storefront) return null;
+
+  return buildTourSiteSlug(storefront.business_name, storefront.user_id);
+};

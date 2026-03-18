@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { 
   ArrowRight, 
   Check, 
@@ -55,31 +56,46 @@ const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
       {/* Navigation Bar */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary-navy rounded-lg flex items-center justify-center transform rotate-12">
-              <Compass className="text-white w-5 h-5 -rotate-12" />
+          <Link to="/" className="flex items-center gap-2 group hover:opacity-80 transition-opacity">
+            <div className="w-8 h-8 bg-primary-navy rounded-lg flex items-center justify-center transform rotate-12 group-hover:rotate-0 transition-transform duration-300">
+              <Compass className="text-white w-5 h-5 -rotate-12 group-hover:rotate-0 transition-transform duration-300" />
             </div>
             <span className="text-xl font-black text-primary-navy tracking-tight">Akwantuo</span>
-          </div>
+          </Link>
           
           <div className="hidden md:flex items-center gap-6">
             <button className="text-sm font-bold text-slate-600 hover:text-primary-navy transition-colors">Find a Guide</button>
             <button className="text-sm font-bold text-slate-600 hover:text-primary-navy transition-colors">How it works</button>
-            <Button variant="outline" className="rounded-full border-slate-200 font-bold flex items-center gap-2 hover:bg-slate-50">
-              <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center">
-                <Users size={14} className="text-slate-500" />
-              </div>
-              Sign In
-            </Button>
+            <Link to="/">
+              <Button variant="outline" className="rounded-full border-slate-200 font-bold flex items-center gap-2 hover:bg-slate-50">
+                <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center">
+                  <Users size={14} className="text-slate-500" />
+                </div>
+                Sign In
+              </Button>
+            </Link>
           </div>
           
           <button 
-            className="md:hidden p-2 text-slate-600"
+            className="md:hidden p-2 text-slate-600 focus:outline-none"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
-            {mobileMenuOpen ? <X /> : <Menu />}
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-white border-t border-slate-100 p-4 space-y-4 animate-in slide-in-from-top duration-300">
+            <button className="block w-full text-left px-4 py-2 text-sm font-bold text-slate-600 hover:text-primary-navy hover:bg-slate-50 rounded-xl transition-all">Find a Guide</button>
+            <button className="block w-full text-left px-4 py-2 text-sm font-bold text-slate-600 hover:text-primary-navy hover:bg-slate-50 rounded-xl transition-all">How it works</button>
+            <Link to="/" onClick={() => setMobileMenuOpen(false)}>
+              <Button className="w-full h-12 bg-primary-navy hover:bg-primary-navy/90 text-white rounded-xl font-bold mt-2 shadow-lg shadow-primary-navy/10">
+                Sign In
+              </Button>
+            </Link>
+          </div>
+        )}
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 py-8 md:py-12">
@@ -257,12 +273,12 @@ const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
 
       <footer className="bg-white py-12 border-t border-slate-100 mt-20">
         <div className="max-w-7xl mx-auto px-6 text-center space-y-6">
-          <div className="flex items-center justify-center gap-2 grayscale opacity-50">
+          <Link to="/" className="inline-flex items-center justify-center gap-2 grayscale-0 hover:opacity-80 transition-opacity">
              <div className="w-6 h-6 bg-slate-900 rounded flex items-center justify-center">
               <Compass className="text-white w-4 h-4" />
             </div>
             <span className="text-lg font-black text-slate-900 tracking-tight italic">Akwantuo</span>
-          </div>
+          </Link>
           <p className="text-sm font-bold text-slate-400">© 2024 Akwantuo – Explore like a local. All rights reserved.</p>
           <div className="flex justify-center gap-6 text-slate-400">
              <Share2 size={20} className="hover:text-primary-navy cursor-pointer transition-colors" />

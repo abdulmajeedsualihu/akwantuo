@@ -9,19 +9,19 @@ import { getProfileByPhone, createInitialProfile } from "@/lib/onboardingService
 
 const AFRICAN_COUNTRY_CODES = [
   { name: "Ghana", code: "+233", flag: "🇬🇭", placeholder: "024 123 4567" },
-  { name: "Nigeria", code: "+234", flag: "🇳🇬", placeholder: "080 1234 5678" },
-  { name: "Kenya", code: "+254", flag: "🇰🇪", placeholder: "0712 345 678" },
-  { name: "South Africa", code: "+27", flag: "🇿🇦", placeholder: "082 123 4567" },
-  { name: "Egypt", code: "+20", flag: "🇪🇬", placeholder: "0100 123 4567" },
-  { name: "Morocco", code: "+212", flag: "🇲🇦", placeholder: "06 12 34 56 78" },
-  { name: "Senegal", code: "+221", flag: "🇸🇳", placeholder: "77 123 45 67" },
-  { name: "Tanzania", code: "+255", flag: "🇹🇿", placeholder: "065 123 4567" },
+  // { name: "Nigeria", code: "+234", flag: "🇳🇬", placeholder: "080 1234 5678" },
+  // { name: "Kenya", code: "+254", flag: "🇰🇪", placeholder: "0712 345 678" },
+  // { name: "South Africa", code: "+27", flag: "🇿🇦", placeholder: "082 123 4567" },
+  // { name: "Egypt", code: "+20", flag: "🇪🇬", placeholder: "0100 123 4567" },
+  // { name: "Morocco", code: "+212", flag: "🇲🇦", placeholder: "06 12 34 56 78" },
+  // { name: "Senegal", code: "+221", flag: "🇸🇳", placeholder: "77 123 45 67" },
+  // { name: "Tanzania", code: "+255", flag: "🇹🇿", placeholder: "065 123 4567" },
 ];
 
 type CountryOption = typeof AFRICAN_COUNTRY_CODES[number];
 
 interface OnboardingPhoneProps {
-  onComplete: (phone: string, profileData?: any) => void;
+  onComplete: (phone: string, profileData?: any, isReturning?: boolean) => void;
 }
 
 const OnboardingPhone = ({ onComplete }: OnboardingPhoneProps) => {
@@ -36,6 +36,11 @@ const OnboardingPhone = ({ onComplete }: OnboardingPhoneProps) => {
   const normalizedPhone = sanitizeNumber(phone);
   const buildFullPhone = () => {
     if (!normalizedPhone) return "";
+
+    if (selectedCountry.name !== "Ghana") {
+      throw new Error("Only Ghana tours are supported for now.");
+    }
+
     return `${selectedCountry.code}${normalizedPhone}`;
   };
 
@@ -58,16 +63,16 @@ const OnboardingPhone = ({ onComplete }: OnboardingPhoneProps) => {
       if (!fullPhone) {
         throw new Error("Please provide a valid number.");
       }
-      
+
       // Generate a random 6-digit OTP
       const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
       setGeneratedOtp(newOtp);
       setOtpExpiry(Date.now() + 2 * 60 * 1000); // 2 minutes expiry
-      
+
       console.log(`%c [AKWANTUO AUTH] OTP for ${fullPhone}: ${newOtp} `, "background: #1e293b; color: #f8fafc; font-weight: bold; padding: 4px; border-radius: 4px;");
-      
+
       toast.success("Code sent! Check your console for demo.");
-      
+
       setTimer(52);
       setStep("otp");
     } catch {
@@ -79,7 +84,7 @@ const OnboardingPhone = ({ onComplete }: OnboardingPhoneProps) => {
   const handleVerify = async () => {
     const otpValue = otp.join("");
     if (otpValue.length < 6) return;
-    
+
     if (otpExpiry && Date.now() > otpExpiry) {
       toast.error("OTP has expired. Please request a new one.");
       return;
@@ -93,26 +98,28 @@ const OnboardingPhone = ({ onComplete }: OnboardingPhoneProps) => {
     setLoading(true);
     try {
       const fullPhone = buildFullPhone();
-      
-      let profile = await getProfileByPhone(fullPhone);
-      
+
+      const existingProfile = await getProfileByPhone(fullPhone);
+      const isReturning = !!existingProfile;
+
+      let profile = existingProfile;
       if (!profile) {
         toast.info("Creating your guide account...");
         profile = await createInitialProfile(fullPhone);
       } else {
-        toast.success("Welcome back! Fetching your details...");
+        toast.success("Welcome back! Taking you to your dashboard... 🎉");
       }
 
       const profileData = {
         displayName: profile?.display_name || "",
         location: profile?.location || "",
         phone: fullPhone,
-        bio: "", // Add if schema supports it or use default
+        bio: "",
         languages: ["English", "Twi"],
       };
 
-      toast.success("Verified! Welcome aboard 🎉");
-      onComplete(fullPhone, profileData);
+      if (!isReturning) toast.success("Verified! Welcome aboard 🎉");
+      onComplete(fullPhone, profileData, isReturning);
     } catch (err) {
       console.error(err);
       toast.error("Something went wrong during verification.");
@@ -142,7 +149,7 @@ const OnboardingPhone = ({ onComplete }: OnboardingPhoneProps) => {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-4">
-      <div 
+      <div
         className={cn(
           "w-full max-w-[400px] bg-white rounded-[2.5rem] shadow-akwantuo overflow-hidden transition-all duration-500 transform",
           "flex flex-col animate-in fade-in zoom-in"
@@ -151,7 +158,7 @@ const OnboardingPhone = ({ onComplete }: OnboardingPhoneProps) => {
         {/* Header/Back Button */}
         <div className="p-8 pb-0">
           {step === "otp" && (
-            <button 
+            <button
               onClick={() => setStep("phone")}
               className="p-2 -ml-2 text-charcoal hover:bg-secondary rounded-full transition-colors"
             >
@@ -162,12 +169,12 @@ const OnboardingPhone = ({ onComplete }: OnboardingPhoneProps) => {
 
         <div className="px-8 pb-12 pt-4 flex flex-col items-center text-center">
           {/* Logo Area */}
-          <AkwantuoLogo 
-            variant={step === "phone" ? "boxed" : "circle"} 
-            size="md" 
-            className="mb-4" 
+          <AkwantuoLogo
+            variant={step === "phone" ? "boxed" : "circle"}
+            size="md"
+            className="mb-4"
           />
-          
+
           {step === "phone" && (
             <AkwantuoLogo variant="text" className="mb-6" />
           )}
@@ -215,14 +222,14 @@ const OnboardingPhone = ({ onComplete }: OnboardingPhoneProps) => {
                 <div className="w-full sm:flex-[2.2] space-y-2 text-left">
                   <label className="text-[13px] font-bold text-charcoal px-1">Phone Number</label>
                   <div className="h-16 sm:h-[4.5rem] border-2 border-border/60 rounded-2xl px-5 bg-white focus-within:border-primary-navy transition-all flex items-center">
-                      <input
-                        type="tel"
-                        placeholder={selectedCountry.placeholder}
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 12))}
-                        className="w-full bg-transparent outline-none text-xl font-bold placeholder:text-muted-foreground/30 text-charcoal"
-                        autoFocus
-                      />
+                    <input
+                      type="tel"
+                      placeholder={selectedCountry.placeholder}
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 12))}
+                      className="w-full bg-transparent outline-none text-xl font-bold placeholder:text-muted-foreground/30 text-charcoal"
+                      autoFocus
+                    />
                   </div>
                 </div>
               </div>
@@ -261,7 +268,7 @@ const OnboardingPhone = ({ onComplete }: OnboardingPhoneProps) => {
 
               <div className="space-y-4">
                 <div className="flex flex-col items-center gap-2">
-                  <button 
+                  <button
                     className="flex items-center gap-2 text-[14px] font-bold text-muted-foreground hover:text-charcoal transition-colors disabled:opacity-50"
                     disabled={timer > 0}
                   >
@@ -297,11 +304,11 @@ const OnboardingPhone = ({ onComplete }: OnboardingPhoneProps) => {
         {step === "phone" && (
           <div className="bg-secondary/30 h-16 mt-auto border-t border-border flex items-center justify-center gap-4">
             <div className="w-10 h-10 rounded-full bg-slate-300/40 flex items-center justify-center text-slate-400">
-               <MapPin size={20} />
+              <MapPin size={20} />
             </div>
             <div className="w-20 h-0.5 bg-slate-300/40 rounded-full" />
             <div className="w-10 h-10 rounded-full bg-slate-300/40 flex items-center justify-center text-slate-400 rotate-45">
-               <Send size={20} />
+              <Send size={20} />
             </div>
           </div>
         )}

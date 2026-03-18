@@ -334,7 +334,7 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
                 <Button
                   onClick={onGetStarted}
                   size="lg"
-                  className="h-20 px-12 text-xl font-black bg-white text-primary-navy hover:bg-white/90 rounded-[2rem] shadow-2xl transform transition-all hover:scale-105 active:scale-95"
+                  className="h-16 px-8 text-lg sm:h-20 sm:px-12 sm:text-xl font-black bg-white text-primary-navy hover:bg-white/90 rounded-[2rem] shadow-2xl transform transition-all hover:scale-105 active:scale-95 mx-auto"
                 >
                   Create Your Free Tour Site
                 </Button>

@@ -36,23 +36,9 @@ export const slugifyDisplayName = (displayName?: string) => {
 
 const normalizeUserId = (userId?: string) => (userId ?? "").replace(/[^a-z0-9]/gi, "");
 
-export const buildTourSiteSlug = (displayName?: string, userId?: string) => {
+export const buildTourSiteSlug = (displayName?: string, _userId?: string) => {
   const baseSlug = slugifyDisplayName(displayName);
-  const suffix = normalizeUserId(userId).slice(0, 6);
-
-  if (baseSlug && suffix) {
-    return `${baseSlug}-${suffix}`;
-  }
-
-  if (baseSlug) {
-    return baseSlug;
-  }
-
-  if (suffix) {
-    return suffix;
-  }
-
-  return "tour";
+  return baseSlug || "tour";
 };
 
 export const buildGuideUrl = (displayName?: string) => {

@@ -13,15 +13,9 @@ interface OnboardingSuccessProps {
 }
 
 const OnboardingSuccess = ({ onDone, onShare, displayName = "", slug }: OnboardingSuccessProps) => {
-  const computedSlug = useMemo(
-    () => slug?.toString().trim() || slugifyDisplayName(displayName),
-    [slug, displayName]
-  );
-  const shareUrl = useMemo(
-    () => buildLandingUrl({ slug: computedSlug || undefined, displayName }),
-    [computedSlug, displayName]
-  );
-  const fallbackSlug = computedSlug || "tour";
+  const computedSlug = slug?.toString().trim() || slugifyDisplayName(displayName) || "tour";
+  const shareUrl = buildLandingUrl({ slug, displayName });
+  const fallbackSlug = computedSlug;
   const baseDomain = useMemo(() => getSystemBaseUrl(), []);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const [downloading, setDownloading] = useState(false);
@@ -81,11 +75,12 @@ const OnboardingSuccess = ({ onDone, onShare, displayName = "", slug }: Onboardi
 
     try {
       let copied = false;
+      const copyText = `Hi! Check out my tour page: ${shareUrl}`;
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(shareUrl);
+        await navigator.clipboard.writeText(copyText);
         copied = true;
       } else {
-        copied = fallbackCopyText(shareUrl);
+        copied = fallbackCopyText(copyText);
       }
 
       if (!copied) {
@@ -93,7 +88,7 @@ const OnboardingSuccess = ({ onDone, onShare, displayName = "", slug }: Onboardi
       }
 
       setCopyState("copied");
-      toast.success("Link copied to clipboard");
+      toast.success("Link & message copied!");
     } catch {
       setCopyState("failed");
       toast.error("Could not copy the link");

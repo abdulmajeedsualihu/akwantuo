@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import AkwantuoLogo from "./AkwantuoLogo";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { slugifyDisplayName } from "@/lib/share";
+import { slugifyDisplayName, buildLandingUrl } from "@/lib/share";
 
 interface VendorDashboardProps {
   displayName: string;
@@ -107,14 +107,12 @@ const VendorDashboard = ({ displayName, photo, slug, onLogout, onViewPage }: Ven
   const [activeNav, setActiveNav] = useState<NavItem>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const displaySlug = slugifyDisplayName(displayName) || slug;
-  const publicUrl = displaySlug
-    ? `${window.location.origin}/${displaySlug}`
-    : `${window.location.origin}`;
+  const publicUrl = buildLandingUrl({ slug, displayName });
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(publicUrl);
-    toast.success("Link copied to clipboard!");
+    const copyText = `Check out my tour page: ${publicUrl}`;
+    navigator.clipboard.writeText(copyText);
+    toast.success("Link & message copied!");
   };
 
   const handleShare = () => {
@@ -232,13 +230,11 @@ const VendorDashboard = ({ displayName, photo, slug, onLogout, onViewPage }: Ven
         <div className="hidden lg:flex items-center justify-between px-8 py-6 border-b border-slate-100 bg-white">
           <h1 className="text-xl font-black text-charcoal">Dashboard</h1>
           <div className="flex items-center gap-3">
-            {displaySlug && (
-              <a href={publicUrl} target="_blank" rel="noreferrer">
-                <Button variant="outline" size="sm" className="flex items-center gap-2 rounded-xl font-bold border-slate-200">
-                  <ExternalLink className="w-4 h-4" /> View Public Profile
-                </Button>
-              </a>
-            )}
+            <a href={publicUrl} target="_blank" rel="noreferrer">
+              <Button variant="outline" size="sm" className="flex items-center gap-2 rounded-xl font-bold border-slate-200">
+                <ExternalLink className="w-4 h-4" /> View Public Profile
+              </Button>
+            </a>
           </div>
         </div>
 

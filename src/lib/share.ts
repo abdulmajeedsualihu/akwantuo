@@ -41,11 +41,7 @@ export const buildTourSiteSlug = (displayName?: string, _userId?: string) => {
 
 export const buildLandingUrl = (params: { slug?: string; displayName?: string }) => {
   const base = getSystemBaseUrl();
-  const safeSlug = params.slug?.toString().trim() || slugifyDisplayName(params.displayName);
+  const safeSlug = params.slug?.toString().trim() || slugifyDisplayName(params.displayName) || "tour";
 
-  if (safeSlug) {
-    return `${base}/${safeSlug}`;
-  }
-
-  return base;
+  return `${base}/${safeSlug}`;
 };

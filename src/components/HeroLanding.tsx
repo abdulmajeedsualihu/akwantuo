@@ -90,7 +90,7 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
 
                 <div className="space-y-6">
                   <h1 className="text-5xl sm:text-7xl xl:text-8xl font-black tracking-tight leading-[0.95] text-charcoal">
-                    Own your <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary-navy to-blue-600">Bookings</span>, Grow you brand.
+                    Own your <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary-navy to-blue-600">Bookings</span>, Grow your brand.
                   </h1>
                   <p className="text-xl sm:text-2xl text-muted-foreground font-medium leading-relaxed max-w-2xl mx-auto lg:mx-0">
                     The simplest way for local guides to launch a professional tour site, manage bookings, and grow their audience. All in 60 seconds.

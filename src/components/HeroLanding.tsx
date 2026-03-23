@@ -123,13 +123,13 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
                   onClick={() => onGetStarted(persona)}
                   className="hidden sm:flex font-bold text-charcoal hover:bg-slate-50 rounded-xl"
                 >
-                  Vendor Dashboard
+                  Tour Guide Dashboard
                 </Button>
                 <Button
                   onClick={() => onGetStarted(persona)}
                   className="bg-primary-navy hover:bg-primary-navy/90 text-white font-bold rounded-xl px-6 shadow-md"
                 >
-                  Start Guiding
+                  Launch Your Tour
                 </Button>
               </>
             )}

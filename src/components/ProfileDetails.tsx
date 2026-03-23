@@ -29,6 +29,15 @@ const ProfileDetails = ({ initialData, onBack, onContinue }: ProfileDetailsProps
   const availableLanguages = ["English", "French", "Twi", "Ga", "Hausa"];
 
   useEffect(() => {
+    if (initialData?.displayName && !displayName) setDisplayName(initialData.displayName);
+    if (initialData?.location && !location) setLocation(initialData.location);
+    if (initialData?.bio && !bio) setBio(initialData.bio);
+    if (initialData?.languages && (!selectedLanguages || selectedLanguages.length === 0)) {
+      setSelectedLanguages(initialData.languages);
+    }
+  }, [initialData]);
+
+  useEffect(() => {
     const timer = setTimeout(async () => {
       if (displayName.trim().length >= 3) {
         setIsChecking(true);

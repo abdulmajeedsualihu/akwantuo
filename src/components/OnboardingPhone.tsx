@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, ChevronLeft, MapPin, Send } from "lucide-react";
+import { ArrowRight, ChevronLeft, MapPin, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import AkwantuoLogo from "./AkwantuoLogo";
@@ -26,6 +26,40 @@ interface OnboardingPhoneProps {
 const OnboardingPhone = ({ onComplete }: OnboardingPhoneProps) => {
   const [phone, setPhone] = useState("");
   const [selectedCountry, setSelectedCountry] = useState<CountryOption>(AFRICAN_COUNTRY_CODES[0]);
+  const [location, setLocation] = useState("");
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+
+  useEffect(() => {
+    // Attempt to auto-detect location on mount
+    if ("geolocation" in navigator) {
+      setIsDetectingLocation(true);
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const { latitude, longitude } = position.coords;
+            // Use Nominatim for free reverse geocoding
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10`
+            );
+            const data = await response.json();
+            const city = data.address?.city || data.address?.town || data.address?.village || data.address?.state;
+            const country = data.address?.country;
+            if (city && country) {
+              setLocation(`${city}, ${country}`);
+            }
+          } catch (err) {
+            console.error("Location detection failed:", err);
+          } finally {
+            setIsDetectingLocation(false);
+          }
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          setIsDetectingLocation(false);
+        }
+      );
+    }
+  }, []);
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [loading, setLoading] = useState(false);
@@ -81,6 +115,10 @@ const OnboardingPhone = ({ onComplete }: OnboardingPhoneProps) => {
   };
 
   const handleVerify = async () => {
+    if (!location.trim()) {
+      toast.error("Please enter your primary city first.");
+      return;
+    }
     const otpValue = otp.join("");
     if (otpValue.length < 6) return;
 
@@ -111,7 +149,7 @@ const OnboardingPhone = ({ onComplete }: OnboardingPhoneProps) => {
 
       const profileData = {
         displayName: profile?.display_name || "",
-        location: profile?.location || "",
+        location: location || profile?.location || "",
         phone: fullPhone,
         bio: "",
         languages: ["English", "Twi"],
@@ -247,22 +285,47 @@ const OnboardingPhone = ({ onComplete }: OnboardingPhoneProps) => {
               </p>
             </div>
           ) : (
-            <div className="w-full space-y-10">
-              <div className="grid grid-cols-6 gap-2">
-                {otp.map((digit, i) => (
+            <div className="w-full space-y-8">
+              {/* Primary City Input */}
+              <div className="space-y-2 text-left animate-in fade-in slide-in-from-top-4 duration-500">
+                <label className="text-[13px] font-bold text-charcoal px-1 flex items-center gap-2">
+                  <MapPin size={14} className="text-primary-navy" />
+                  Your Primary City
+                </label>
+                <div className="h-16 sm:h-[4.5rem] border-2 border-border/60 rounded-2xl px-5 bg-white focus-within:border-primary-navy transition-all flex items-center shadow-sm">
                   <input
-                    key={i}
-                    id={`otp-${i}`}
                     type="text"
-                    inputMode="numeric"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleOtpChange(i, e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(i, e)}
-                    className="h-16 w-full text-center text-xl font-bold border-2 border-border/60 rounded-xl bg-white focus:border-primary-navy focus:ring-4 focus:ring-primary-navy/5 outline-none transition-all"
-                    autoFocus={i === 0}
+                    placeholder={isDetectingLocation ? "Detecting location..." : "e.g. Accra, Cape Coast..."}
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    className="w-full bg-transparent outline-none text-xl font-bold placeholder:text-muted-foreground/30 text-charcoal"
                   />
-                ))}
+                  {isDetectingLocation ? (
+                    <Loader2 size={20} className="text-primary-navy animate-spin ml-2" />
+                  ) : (
+                    <MapPin size={20} className="text-slate-400 ml-2" />
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <label className="text-[13px] font-bold text-charcoal px-1 block text-left">Verification Code</label>
+                <div className="grid grid-cols-6 gap-2">
+                  {otp.map((digit, i) => (
+                    <input
+                      key={i}
+                      id={`otp-${i}`}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(i, e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(i, e)}
+                      className="h-16 w-full text-center text-xl font-bold border-2 border-border/60 rounded-xl bg-white focus:border-primary-navy focus:ring-4 focus:ring-primary-navy/5 outline-none transition-all"
+                      autoFocus={i === 0}
+                    />
+                  ))}
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -290,9 +353,9 @@ const OnboardingPhone = ({ onComplete }: OnboardingPhoneProps) => {
                 </Button>
               </div>
 
-              <div className="pt-4">
-                <p className="text-[10px] font-black tracking-widest text-muted-foreground/50">
-                  POWERED BY AKWANTUO SECURITY
+              <div className="pt-4 text-center">
+                <p className="text-[10px] font-black tracking-widest text-muted-foreground/50 uppercase">
+                  Powered by Akwantuo Security
                 </p>
               </div>
             </div>

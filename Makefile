@@ -54,10 +54,13 @@ supabase-status:
 
 # Replace <PROJECT_REF> with your actual Supabase project reference
 supabase-link:
-	npx supabase link --project-ref sdolvhiyxbtqmviusqzl
+	npx supabase link --project-ref your_project_ref --debug
 
 supabase-push:
 	npx supabase db push --include-all
+
+supabase-deploy:
+	npx supabase functions deploy analyze-guide-assets --no-verify-jwt
 
 supabase-types:
 	npx supabase gen types typescript --local > src/integrations/supabase/types.ts

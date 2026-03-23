@@ -18,6 +18,8 @@ interface OnboardingContextType {
   handlePublish: () => Promise<boolean>;
   resetOnboarding: () => void;
   latestTours: LandingPageRecord[];
+  aiResult: any;
+  setAiResult: React.Dispatch<React.SetStateAction<any>>;
 }
 
 const VENDOR_PHONE_KEY = "akwantuo_vendor_phone";
@@ -66,6 +68,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [isPublishing, setIsPublishing] = useState(false);
   const [restoringSession, setRestoringSession] = useState(false);
   const [latestTours, setLatestTours] = useState<LandingPageRecord[]>([]);
+  const [aiResult, setAiResult] = useState<any>(null);
 
   useEffect(() => {
     getLatestTourSites(6).then(setLatestTours);
@@ -146,7 +149,9 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       restoringSession,
       handlePublish,
       resetOnboarding,
-      latestTours
+      latestTours,
+      aiResult,
+      setAiResult
     }}>
       {children}
     </OnboardingContext.Provider>

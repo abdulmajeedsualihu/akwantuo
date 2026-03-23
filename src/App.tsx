@@ -32,6 +32,7 @@ const App = () => (
               <Route path="/onboarding/phone" element={<Index />} />
               <Route path="/onboarding/profile" element={<Index />} />
               <Route path="/onboarding/photos" element={<Index />} />
+              <Route path="/onboarding/ai-loading" element={<Index />} />
               <Route path="/onboarding/tour" element={<Index />} />
               <Route path="/onboarding/preview" element={<Index />} />
               <Route path="/onboarding/success" element={<Index />} />

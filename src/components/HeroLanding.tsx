@@ -103,7 +103,7 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
                     size="lg"
                     className="h-20 px-10 text-xl font-black bg-primary-navy hover:bg-primary-navy/90 text-white rounded-[2rem] shadow-2xl shadow-primary-navy/20 group transform transition-all hover:-translate-y-1 active:scale-95"
                   >
-                    Start Hosting Free
+                    Start Hosting Fast
                     <ArrowRight className="w-6 h-6 ml-2 group-hover:translate-x-2 transition-transform" />
                   </Button>
                   <div className="flex items-center gap-4 px-6 py-3 border-2 border-slate-100 rounded-[2rem] bg-white/50 backdrop-blur-sm self-center">

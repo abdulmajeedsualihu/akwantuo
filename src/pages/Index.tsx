@@ -11,6 +11,8 @@ import RoleSelector from "@/components/RoleSelector";
 import VendorDashboard from "@/components/VendorDashboard";
 import { useOnboarding, saveVendorPhone, clearVendorPhone, loadVendorPhone } from "@/contexts/OnboardingContext";
 import AILoading from "@/components/AILoading";
+import TouristPreferences from "@/components/TouristPreferences";
+import TouristMatchResults from "@/components/TouristMatchResults";
 import { startAIAnalysis } from "@/lib/aiService";
 import { toast } from "sonner";
 import { slugifyDisplayName } from "@/lib/share";
@@ -32,6 +34,12 @@ const Index = () => {
   } = useOnboarding();
 
   const [aiError, setAiError] = useState<string | null>(null);
+  const [touristPrefs, setTouristPrefs] = useState<any>(() => {
+    try {
+      const saved = sessionStorage.getItem("akwantuo_tourist_prefs");
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  });
   const analysisTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Cleanup timeout on unmount
@@ -128,13 +136,7 @@ const Index = () => {
           onBack={() => navigate("/")}
           onContinue={(role: "guide" | "tourist" | null) => {
             if (role === "tourist") {
-              navigate("/");
-              setTimeout(() => {
-                toast.error("Explore our tour guides on the home page!", {
-                  description: "Akwantuo onboarding is for vendors. As a tourist, discover guides below.",
-                  duration: 5000,
-                });
-              }, 100);
+              navigate("/onboarding/tourist-preferences");
             } else {
               navigate("/onboarding/phone");
             }
@@ -205,6 +207,32 @@ const Index = () => {
           onRetry={runAnalysis}
           onSkip={() => navigate("/onboarding/profile")}
           onComplete={runAnalysis}
+        />
+      );
+    }
+
+    if (path === "/onboarding/tourist-preferences") {
+      return (
+        <TouristPreferences
+          onBack={() => navigate("/onboarding/role")}
+          onComplete={(prefs: any) => {
+            setTouristPrefs(prefs);
+            try { sessionStorage.setItem("akwantuo_tourist_prefs", JSON.stringify(prefs)); } catch {}
+            navigate("/onboarding/match-results");
+          }}
+        />
+      );
+    }
+
+    if (path === "/onboarding/match-results") {
+      return (
+        <TouristMatchResults
+          preferences={touristPrefs}
+          onBack={() => navigate("/onboarding/tourist-preferences")}
+          onSelectGuide={(id: string, slug: string) => {
+            toast.success("Connecting you with your guide...");
+            navigate(`/${slug}`);
+          }}
         />
       );
     }

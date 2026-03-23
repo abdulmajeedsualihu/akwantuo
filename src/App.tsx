@@ -35,6 +35,8 @@ const App = () => (
               <Route path="/onboarding/ai-loading" element={<Index />} />
               <Route path="/onboarding/tour" element={<Index />} />
               <Route path="/onboarding/preview" element={<Index />} />
+              <Route path="/onboarding/tourist-preferences" element={<Index />} />
+              <Route path="/onboarding/match-results" element={<Index />} />
               <Route path="/onboarding/success" element={<Index />} />
               <Route path="/dashboard" element={<Index />} />
               <Route path="/:slug" element={<LandingPage />} />

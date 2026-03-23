@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { 
-  MapPin, 
-  Share2, 
-  MessageSquare, 
-  Calendar, 
-  Users, 
+import {
+  MapPin,
+  Share2,
+  MessageSquare,
+  Calendar,
+  Users,
   ChevronRight,
   BadgeCheck,
   Menu,
@@ -23,18 +23,18 @@ interface LandingPageTemplateProps {
 const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
   const { storefront, profile, descriptionPayload } = record;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
+
   const heroImage = descriptionPayload.mainPhoto || "/placeholder.svg";
   const gallery = descriptionPayload.gallery ?? [];
   const shareUrl = buildLandingUrl({
     slug: record.slug,
     displayName: storefront.business_name,
   });
-  
+
   const location = storefront.location || profile?.location || "Accra, Ghana";
   const bio = descriptionPayload.bio || "Passionate local guide ready to share unforgettable local stories.";
   const languages = descriptionPayload.languages?.length ? descriptionPayload.languages : ["English", "Twi"];
-  
+
   const mainTour = {
     title: storefront.category || "Authentic Experience",
     price: descriptionPayload.price || "Contact",
@@ -59,7 +59,7 @@ const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
             </div>
             <span className="text-xl font-black text-primary-navy tracking-tight">Akwantuo</span>
           </Link>
-          
+
           <div className="hidden md:flex items-center gap-6">
             <button className="text-sm font-bold text-slate-600 hover:text-primary-navy transition-colors">Find a Guide</button>
             <button className="text-sm font-bold text-slate-600 hover:text-primary-navy transition-colors">How it works</button>
@@ -68,12 +68,12 @@ const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
                 <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center">
                   <Users size={14} className="text-slate-500" />
                 </div>
-                Sign In
+                Get matched
               </Button>
             </Link>
           </div>
-          
-          <button 
+
+          <button
             className="md:hidden p-2 text-slate-600 focus:outline-none"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
@@ -88,7 +88,7 @@ const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
             <button className="block w-full text-left px-4 py-2 text-sm font-bold text-slate-600 hover:text-primary-navy hover:bg-slate-50 rounded-xl transition-all">How it works</button>
             <Link to="/" onClick={() => setMobileMenuOpen(false)}>
               <Button className="w-full h-12 bg-primary-navy hover:bg-primary-navy/90 text-white rounded-xl font-bold mt-2 shadow-lg shadow-primary-navy/10">
-                Sign In
+                Get matched
               </Button>
             </Link>
           </div>
@@ -97,10 +97,10 @@ const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
 
       <main className="max-w-7xl mx-auto px-4 py-8 md:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-8 items-start">
-          
+
           {/* Left Column: Profile & Booking */}
           <div className="space-y-8 animate-in fade-in slide-in-from-left duration-700">
-            
+
             {/* Profile Card */}
             <section className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-200/60 text-center lg:text-left">
               <div className="relative inline-block mb-6">
@@ -111,7 +111,7 @@ const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
                   <BadgeCheck size={24} className="text-blue-500 fill-blue-500/10" />
                 </div>
               </div>
-              
+
               <div className="space-y-2 mb-6">
                 <h1 className="text-3xl font-black text-slate-900 tracking-tight">{storefront.business_name}</h1>
                 <div className="flex items-center justify-center lg:justify-start gap-1.5 text-slate-500 font-bold text-sm">
@@ -174,7 +174,7 @@ const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
                   <span className="relative z-10 px-4 bg-white text-[10px] font-black text-slate-300 tracking-widest">OR CHAT DIRECTLY</span>
                 </div>
 
-                <Button 
+                <Button
                   onClick={() => window.open(whatsappLink, "_blank")}
                   className="w-full h-14 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-500/10 active:scale-95"
                 >
@@ -187,14 +187,14 @@ const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
 
           {/* Right Column: Gallery & Tours */}
           <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-            
+
             {/* Gallery Section */}
             <section className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Gallery</h2>
                 <button className="text-primary-navy font-bold text-sm hover:underline">View All</button>
               </div>
-              
+
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {gallery.length > 0 ? (
                   gallery.slice(0, 5).map((img: string, i: number) => (
@@ -222,7 +222,7 @@ const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
             {/* Tours Offered */}
             <section className="space-y-8">
               <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Tours Offered</h2>
-              
+
               <div className="space-y-4">
                 {/* Real Tour Card */}
                 <article className="bg-white rounded-[2rem] overflow-hidden border border-slate-100 shadow-sm flex flex-col md:flex-row group hover:shadow-xl hover:border-blue-100/50 transition-all duration-500">
@@ -259,7 +259,7 @@ const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
 
                 {/* Placeholder/Extra Tour if helpful for layout */}
                 <article className="bg-white/50 rounded-[2rem] overflow-hidden border border-dashed border-slate-200 p-8 flex items-center justify-center">
-                   <p className="text-slate-400 font-bold text-sm tracking-wide">More experiences coming soon...</p>
+                  <p className="text-slate-400 font-bold text-sm tracking-wide">More experiences coming soon...</p>
                 </article>
               </div>
             </section>
@@ -271,16 +271,16 @@ const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
       <footer className="bg-white py-12 border-t border-slate-100 mt-20">
         <div className="max-w-7xl mx-auto px-6 text-center space-y-6">
           <Link to="/" className="inline-flex items-center justify-center gap-2 grayscale-0 hover:opacity-80 transition-opacity">
-             <div className="w-6 h-6 bg-slate-900 rounded flex items-center justify-center">
+            <div className="w-6 h-6 bg-slate-900 rounded flex items-center justify-center">
               <Compass className="text-white w-4 h-4" />
             </div>
             <span className="text-lg font-black text-slate-900 tracking-tight italic">Akwantuo</span>
           </Link>
           <p className="text-sm font-bold text-slate-400">© 2024 Akwantuo – Explore like a local. All rights reserved.</p>
           <div className="flex justify-center gap-6 text-slate-400">
-             <Share2 size={20} className="hover:text-primary-navy cursor-pointer transition-colors" />
-             <div className="w-5 h-5 bg-slate-400 rounded-sm"></div>
-             <div className="w-5 h-5 bg-slate-400 rounded-full"></div>
+            <Share2 size={20} className="hover:text-primary-navy cursor-pointer transition-colors" />
+            <div className="w-5 h-5 bg-slate-400 rounded-sm"></div>
+            <div className="w-5 h-5 bg-slate-400 rounded-full"></div>
           </div>
         </div>
       </footer>
@@ -289,19 +289,19 @@ const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
 };
 
 const Compass = ({ className, size }: { className?: string; size?: number }) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    width={size || 24} 
-    height={size || 24} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2.5" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size || 24}
+    height={size || 24}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
     className={className}
   >
-    <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+    <circle cx="12" cy="12" r="10" /><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
   </svg>
 );
 

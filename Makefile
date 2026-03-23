@@ -17,6 +17,7 @@ help:
 	@echo "  make supabase-push   - Push local migrations to remote"
 	@echo "  make supabase-types  - Generate Supabase types from project"
 	@echo "  make install         - Install dependencies"
+	@echo "  make supabase-deploy  - Deploy both Edge Functions"
 
 dev:
 	npm run dev
@@ -61,6 +62,7 @@ supabase-push:
 
 supabase-deploy:
 	npx supabase functions deploy analyze-guide-assets --no-verify-jwt
+	npx supabase functions deploy match-guide --no-verify-jwt
 
 supabase-types:
 	npx supabase gen types typescript --local > src/integrations/supabase/types.ts

@@ -73,9 +73,10 @@ serve(async (req) => {
                 role: "user",
                 content: [
                   { type: "text", text: prompt },
+                  // Groq accepts both data: URIs and HTTPS URLs natively
                   ...allPhotos.map(img => ({
                     type: "image_url",
-                    image_url: { url: img.startsWith('data:') ? img : `data:image/jpeg;base64,${img}` }
+                    image_url: { url: img }
                   }))
                 ]
               }
@@ -103,7 +104,30 @@ serve(async (req) => {
     if (!result && GEMINI_API_KEY) {
       const versions = ["v1", "v1beta"];
       const models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.5-flash-latest"];
-      
+
+      // Gemini needs inline base64. Fetch any HTTPS URLs and convert.
+      const geminiImages = await Promise.all(
+        allPhotos.map(async (img) => {
+          if (img.startsWith('data:')) {
+            return {
+              mime_type: img.match(/^data:(image\/[a-zA-Z+]+);base64,/)?.[1] || "image/jpeg",
+              data: img.split(',')[1]
+            };
+          }
+          // HTTPS URL — fetch and convert to base64
+          try {
+            const r = await fetch(img, { signal: AbortSignal.timeout(8000) });
+            const buffer = await r.arrayBuffer();
+            const mime = r.headers.get('content-type') || 'image/jpeg';
+            const b64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+            return { mime_type: mime, data: b64 };
+          } catch {
+            return null;
+          }
+        })
+      );
+      const validGeminiImages = geminiImages.filter(Boolean);
+
       console.log("Attempting Secondary: Gemini Shotgun...");
       outer: for (const ver of versions) {
         for (const mod of models) {
@@ -117,12 +141,7 @@ serve(async (req) => {
                 contents: [{
                   parts: [
                     { text: prompt },
-                    ...allPhotos.map(img => ({
-                      inline_data: {
-                        mime_type: img.match(/^data:(image\/[a-zA-Z+]+);base64,/)?.[1] || "image/jpeg",
-                        data: img.includes(',') ? img.split(',')[1] : img
-                      }
-                    }))
+                    ...validGeminiImages.map(img => ({ inline_data: img }))
                   ]
                 }]
               }),

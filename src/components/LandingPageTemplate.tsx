@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { buildLandingUrl } from "@/lib/share";
 import type { LandingPageRecord } from "@/lib/onboardingService";
 import { cn } from "@/lib/utils";
+import BookingModal from "./BookingModal";
+import { toast } from "sonner";
 
 interface LandingPageTemplateProps {
   record: LandingPageRecord;
@@ -23,6 +25,9 @@ interface LandingPageTemplateProps {
 const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
   const { storefront, profile, descriptionPayload } = record;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [bookingDate, setBookingDate] = useState("");
+  const [numPeople, setNumPeople] = useState("1-2 Person");
 
   const heroImage = descriptionPayload.mainPhoto || "/placeholder.svg";
   const gallery = descriptionPayload.gallery ?? [];
@@ -149,23 +154,41 @@ const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Preferred Date</label>
                   <div className="h-14 bg-slate-50 border border-slate-100 rounded-2xl px-4 flex items-center gap-3 focus-within:border-primary-navy transition-all">
-                    <input type="date" className="bg-transparent outline-none w-full text-sm font-bold text-slate-700" />
+                    <input 
+                      type="date" 
+                      className="bg-transparent outline-none w-full text-sm font-bold text-slate-700"
+                      value={bookingDate}
+                      onChange={(e) => setBookingDate(e.target.value)}
+                    />
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Number of People</label>
-                  <div className="h-14 bg-slate-50 border border-slate-100 rounded-2xl px-4 flex items-center gap-3 focus-within:border-primary-navy transition-all">
-                    <select className="bg-transparent outline-none w-full text-sm font-bold text-slate-700 appearance-none">
+                  <div className="h-14 bg-slate-50 border border-slate-100 rounded-2xl px-4 flex items-center gap-3 focus-within:border-primary-navy transition-all relative">
+                    <select 
+                      className="bg-transparent outline-none w-full text-sm font-bold text-slate-700 appearance-none cursor-pointer z-10"
+                      value={numPeople}
+                      onChange={(e) => setNumPeople(e.target.value)}
+                    >
                       <option>1-2 Person</option>
                       <option>3-5 People</option>
                       <option>6+ People</option>
                     </select>
-                    <ChevronRight size={16} className="text-slate-400 transform rotate-90" />
+                    <ChevronRight size={16} className="text-slate-400 transform rotate-90 absolute right-4" />
                   </div>
                 </div>
 
-                <Button className="w-full h-14 bg-primary-navy hover:bg-primary-navy/90 text-white rounded-2xl font-bold shadow-lg shadow-primary-navy/20 transition-all active:scale-95">
+                <Button 
+                  onClick={() => {
+                    if (!bookingDate) {
+                      toast.error("Please select a date first.");
+                      return;
+                    }
+                    setIsBookingModalOpen(true);
+                  }}
+                  className="w-full h-14 bg-primary-navy hover:bg-primary-navy/90 text-white rounded-2xl font-bold shadow-lg shadow-primary-navy/20 transition-all active:scale-95"
+                >
                   Check Availability
                 </Button>
 
@@ -284,6 +307,15 @@ const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
           </div>
         </div>
       </footer>
+
+      <BookingModal 
+        isOpen={isBookingModalOpen}
+        onClose={() => setIsBookingModalOpen(false)}
+        guideId={profile?.user_id || storefront.user_id}
+        bookingDate={bookingDate}
+        numPeople={numPeople}
+        guideName={storefront.business_name}
+      />
     </div>
   );
 };

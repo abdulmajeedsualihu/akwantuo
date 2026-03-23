@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard, User, CalendarCheck, Settings, LogOut,
   Eye, Ticket, Clock, ExternalLink,
-  Menu, Bell, Share2, Calendar, CheckCircle2, Copy, Home
+  Menu, Bell, Share2, Calendar, CheckCircle2, Copy, Home,
+  XCircle, Check
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,9 @@ import AkwantuoLogo from "./AkwantuoLogo";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { slugifyDisplayName, buildLandingUrl } from "@/lib/share";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { formatDistanceToNow } from "date-fns";
 
 interface VendorDashboardProps {
   displayName: string;
@@ -86,10 +90,10 @@ const MOCK_BOOKINGS = [
 ];
 
 const STATUS_STYLES: Record<string, string> = {
-  Pending: "bg-amber-100 text-amber-700",
-  Confirmed: "bg-emerald-100 text-emerald-700",
-  Expired: "bg-slate-200 text-slate-500",
-  Cancelled: "bg-red-100 text-red-600",
+  pending: "bg-amber-100 text-amber-700",
+  confirmed: "bg-emerald-100 text-emerald-700",
+  cancelled: "bg-red-100 text-red-600",
+  expired: "bg-slate-200 text-slate-500",
 };
 
 const BOTTOM_NAV: { id: NavItem; label: string; icon: React.ReactNode; href?: string }[] = [
@@ -104,10 +108,54 @@ type NavItem = "dashboard" | "bookings" | "mypage" | "settings" | "home";
 
 const VendorDashboard = ({ displayName, photo, slug, onLogout, onViewPage }: VendorDashboardProps) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeNav, setActiveNav] = useState<NavItem>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loadingBookings, setLoadingBookings] = useState(true);
 
   const publicUrl = buildLandingUrl({ slug, displayName });
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchBookings();
+    }
+  }, [user?.id]);
+
+  const fetchBookings = async () => {
+    try {
+      setLoadingBookings(true);
+      const { data, error } = await supabase
+        .from("bookings")
+        .select("*")
+        .eq("guide_id", user?.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setBookings(data || []);
+    } catch (error: any) {
+      console.error("Error fetching bookings:", error);
+      toast.error("Failed to load bookings");
+    } finally {
+      setLoadingBookings(false);
+    }
+  };
+
+  const updateBookingStatus = async (id: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from("bookings")
+        .update({ status: newStatus })
+        .eq("id", id);
+
+      if (error) throw error;
+      
+      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: newStatus } : b));
+      toast.success(`Booking ${newStatus}`);
+    } catch (error: any) {
+      toast.error("Failed to update booking");
+    }
+  };
 
   const handleCopyLink = () => {
     const copyText = `Check out my tour page: ${publicUrl}`;
@@ -271,20 +319,29 @@ const VendorDashboard = ({ displayName, photo, slug, onLogout, onViewPage }: Ven
 
           {/* ── Stats ── */}
           <div className="grid grid-cols-3 gap-3 lg:gap-4">
-            {MOCK_STATS.map((stat) => (
-              <div
-                key={stat.label}
-                className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 lg:p-5 space-y-2"
-              >
-                <p className="text-[11px] font-bold text-muted-foreground truncate">{stat.label}</p>
-                <div className="flex items-end justify-between gap-1">
-                  <p className="text-2xl lg:text-3xl font-black text-charcoal">{stat.value}</p>
-                  <span className={cn("text-[10px] font-black px-1.5 py-0.5 rounded-full flex-shrink-0", stat.positive ? "text-emerald-700 bg-emerald-50" : "text-red-600 bg-red-50")}>
-                    {stat.change}
-                  </span>
-                </div>
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 lg:p-5 space-y-2">
+              <p className="text-[11px] font-bold text-muted-foreground truncate">Total views</p>
+              <div className="flex items-end justify-between gap-1">
+                <p className="text-2xl lg:text-3xl font-black text-charcoal">1,284</p>
+                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full flex-shrink-0 text-emerald-700 bg-emerald-50">+12%</span>
               </div>
-            ))}
+            </div>
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 lg:p-5 space-y-2">
+              <p className="text-[11px] font-bold text-muted-foreground truncate">Bookings</p>
+              <div className="flex items-end justify-between gap-1">
+                <p className="text-2xl lg:text-3xl font-black text-charcoal">{bookings.length}</p>
+                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full flex-shrink-0 text-emerald-700 bg-emerald-50">Total</span>
+              </div>
+            </div>
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 lg:p-5 space-y-2">
+              <p className="text-[11px] font-bold text-muted-foreground truncate">Pending</p>
+              <div className="flex items-end justify-between gap-1">
+                <p className="text-2xl lg:text-3xl font-black text-charcoal">
+                  {bookings.filter(b => b.status === 'pending').length}
+                </p>
+                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full flex-shrink-0 text-orange-700 bg-orange-50">Active</span>
+              </div>
+            </div>
           </div>
 
           {/* ── Recent Booking Requests ── */}
@@ -296,64 +353,126 @@ const VendorDashboard = ({ displayName, photo, slug, onLogout, onViewPage }: Ven
 
             {/* Mobile Cards */}
             <div className="lg:hidden space-y-3">
-              {MOCK_BOOKINGS.map((b, i) => (
-                <div key={i} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={b.avatar}
-                        alt={b.name}
-                        className="w-11 h-11 rounded-full object-cover border-2 border-white shadow-sm"
-                      />
-                      <div>
-                        <p className="text-sm font-black text-charcoal">{b.name}</p>
-                        <p className="text-xs text-muted-foreground font-medium">{b.tour}</p>
+              {loadingBookings ? (
+                <div className="p-8 text-center text-muted-foreground font-bold">Loading bookings...</div>
+              ) : bookings.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground font-bold bg-white rounded-2xl border border-dashed border-slate-200">No bookings yet</div>
+              ) : (
+                bookings.map((b, i) => (
+                  <div key={i} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-full bg-slate-100 flex items-center justify-center text-primary-navy font-black border-2 border-white shadow-sm">
+                          {b.tourist_name[0]}
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-charcoal">{b.tourist_name}</p>
+                          <p className="text-xs text-muted-foreground font-medium">{b.tourist_phone}</p>
+                        </div>
                       </div>
+                      <span className={cn("text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider flex-shrink-0", STATUS_STYLES[b.status])}>
+                        {b.status}
+                      </span>
                     </div>
-                    <span className={cn("text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider flex-shrink-0", STATUS_STYLES[b.status])}>
-                      {b.status}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground font-medium border-t border-slate-50 pt-3">
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5" />
-                      {b.date}
+                    <div className="flex items-center justify-between text-xs text-muted-foreground font-medium border-t border-slate-50 pt-3 mb-3">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5" />
+                        {new Date(b.booking_date).toLocaleDateString()}
+                      </div>
+                      <span>{formatDistanceToNow(new Date(b.created_at))} ago</span>
                     </div>
-                    <span>{b.time}</span>
+                    {b.status === 'pending' && (
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          onClick={() => updateBookingStatus(b.id, 'confirmed')}
+                          className="flex-1 bg-emerald-500 hover:bg-emerald-600 h-10 rounded-xl font-bold"
+                        >
+                          Confirm
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => updateBookingStatus(b.id, 'cancelled')}
+                          className="flex-1 border-slate-200 h-10 rounded-xl font-bold text-red-500 hover:bg-red-50"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
             {/* Desktop Table */}
             <div className="hidden lg:block bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-50">
-                    {["Tourist Name", "Tour Name", "Date", "Status", "Requested"].map((h) => (
-                      <th key={h} className="text-left text-[10px] font-black text-muted-foreground uppercase tracking-widest px-6 py-4">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {MOCK_BOOKINGS.map((b, i) => (
-                    <tr key={i} className="border-b border-slate-50 last:border-none hover:bg-slate-50/60 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <img src={b.avatar} alt={b.name} className="w-9 h-9 rounded-full object-cover border-2 border-white shadow-sm" />
-                          <span className="text-sm font-bold text-charcoal">{b.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-muted-foreground font-medium">{b.tour}</td>
-                      <td className="px-6 py-4 text-sm text-muted-foreground font-medium">{b.date}</td>
-                      <td className="px-6 py-4">
-                        <span className={cn("text-[11px] font-black px-3 py-1.5 rounded-full", STATUS_STYLES[b.status])}>{b.status}</span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-muted-foreground font-medium text-right">{b.time}</td>
+              {loadingBookings ? (
+                <div className="p-12 text-center text-muted-foreground font-bold">Loading bookings...</div>
+              ) : bookings.length === 0 ? (
+                <div className="p-12 text-center text-muted-foreground font-bold italic">No bookings found in your records.</div>
+              ) : (
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50/50">
+                    <tr className="border-b border-slate-100">
+                      <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Tourist Info</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Tour Date</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Status</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {bookings.map((b) => (
+                      <tr key={b.id} className="border-b border-slate-100 last:border-none hover:bg-slate-50/30 transition-colors">
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-primary-navy font-black border-2 border-white shadow-sm">
+                              {b.tourist_name[0]}
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-charcoal">{b.tourist_name}</p>
+                              <p className="text-xs text-muted-foreground font-medium">{b.tourist_phone}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-2 text-sm text-charcoal font-bold">
+                            <Calendar size={14} className="text-slate-400" />
+                            {new Date(b.booking_date).toLocaleDateString()}
+                          </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <span className={cn("text-[11px] font-black px-3 py-1.5 rounded-full uppercase tracking-wider", STATUS_STYLES[b.status])}>
+                            {b.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          {b.status === 'pending' ? (
+                            <div className="flex items-center justify-end gap-2">
+                              <button 
+                                onClick={() => updateBookingStatus(b.id, 'confirmed')}
+                                className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                                title="Confirm Booking"
+                              >
+                                <Check size={16} strokeWidth={3} />
+                              </button>
+                              <button 
+                                onClick={() => updateBookingStatus(b.id, 'cancelled')}
+                                className="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-sm"
+                                title="Cancel Booking"
+                              >
+                                <XCircle size={16} strokeWidth={3} />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground font-medium italic">Handled</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </main>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface PhotoUploadProps {
   onBack: () => void;
@@ -13,16 +14,17 @@ interface PhotoUploadProps {
 
 const uploadToStorage = async (file: File, path: string): Promise<string> => {
   const { error } = await supabase.storage
-    .from("guide-photos")
+    .from("product-images")
     .upload(path, file, { upsert: true, contentType: file.type });
 
   if (error) throw error;
 
-  const { data } = supabase.storage.from("guide-photos").getPublicUrl(path);
+  const { data } = supabase.storage.from("product-images").getPublicUrl(path);
   return data.publicUrl;
 };
 
 const PhotoUpload = ({ onBack, onContinue, onSkip }: PhotoUploadProps) => {
+  const { user } = useAuth();
   const [mainPhoto, setMainPhoto] = useState<string | null>(null);
   const [mainPhotoPreview, setMainPhotoPreview] = useState<string | null>(null);
   const [gallery, setGallery] = useState<string[]>([]);
@@ -46,7 +48,8 @@ const PhotoUpload = ({ onBack, onContinue, onSkip }: PhotoUploadProps) => {
     try {
       const timestamp = Date.now();
       const ext = file.name.split(".").pop();
-      const path = `main/${timestamp}.${ext}`;
+      const userId = user?.id || "guest";
+      const path = `${userId}/main/${timestamp}.${ext}`;
       const url = await uploadToStorage(file, path);
       setMainPhoto(url);
     } catch (err) {
@@ -68,11 +71,12 @@ const PhotoUpload = ({ onBack, onContinue, onSkip }: PhotoUploadProps) => {
 
     setUploadingGallery(true);
     try {
+      const userId = user?.id || "guest";
       const urls = await Promise.all(
         toUpload.map(async (file) => {
           const timestamp = Date.now() + Math.random();
           const ext = file.name.split(".").pop();
-          const path = `gallery/${timestamp}.${ext}`;
+          const path = `${userId}/gallery/${timestamp}.${ext}`;
           return uploadToStorage(file, path);
         })
       );
@@ -201,11 +205,11 @@ const PhotoUpload = ({ onBack, onContinue, onSkip }: PhotoUploadProps) => {
         {/* Actions */}
         <div className="space-y-4 py-8 mt-auto">
           <Button
-            onClick={() => mainPhoto && onContinue({ mainPhoto, gallery })}
-            disabled={!mainPhoto || uploadingMain || uploadingGallery}
+            onClick={() => onContinue({ mainPhoto: mainPhoto || "", gallery })}
+            disabled={uploadingMain || uploadingGallery}
             className="w-full h-[4.5rem] bg-primary-navy hover:bg-primary-navy/90 rounded-2xl text-lg font-bold shadow-lg disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
           >
-            {uploadingMain ? "Uploading photo..." : "Continue"}
+            {uploadingMain || uploadingGallery ? "Uploading..." : "Continue"}
           </Button>
           <button
             onClick={onSkip}

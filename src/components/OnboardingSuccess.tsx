@@ -10,9 +10,10 @@ interface OnboardingSuccessProps {
   onShare: () => void;
   displayName?: string;
   slug?: string;
+  description?: string;
 }
 
-const OnboardingSuccess = ({ onDone, onShare, displayName = "", slug }: OnboardingSuccessProps) => {
+const OnboardingSuccess = ({ onDone, onShare, displayName = "", slug, description = "" }: OnboardingSuccessProps) => {
   const computedSlug = slug?.toString().trim() || slugifyDisplayName(displayName) || "tour";
   const shareUrl = buildLandingUrl({ slug, displayName });
   const fallbackSlug = computedSlug;
@@ -75,7 +76,7 @@ const OnboardingSuccess = ({ onDone, onShare, displayName = "", slug }: Onboardi
 
     try {
       let copied = false;
-      const copyText = `Hi! Check out my tour page: ${shareUrl}`;
+      const copyText = shareUrl.replace(/^https?:\/\//, "");
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(copyText);
         copied = true;
@@ -122,7 +123,10 @@ const OnboardingSuccess = ({ onDone, onShare, displayName = "", slug }: Onboardi
 
   const handleShare = () => {
     if (!shareLinkHref || typeof window === "undefined") return;
-    const encoded = encodeURIComponent(`Hi! Check out my page: ${shareLinkHref}`);
+    const message = description 
+      ? `${description}\n\nCheck out my page: ${shareLinkHref}`
+      : `Hi! Check out my page: ${shareLinkHref}`;
+    const encoded = encodeURIComponent(message);
     window.open(`https://wa.me/?text=${encoded}`, "_blank");
     onShare();
   };
@@ -187,7 +191,7 @@ const OnboardingSuccess = ({ onDone, onShare, displayName = "", slug }: Onboardi
                 rel="noreferrer"
                 className="text-[14px] font-bold text-charcoal break-words hover:text-primary-navy transition-colors"
               >
-                {shareLinkHref}
+                {shareLinkHref.replace(/^https?:\/\//, "")}
               </a>
               <p className="text-[11px] text-muted-foreground">
                 Hosted on <span className="font-semibold text-charcoal">{baseDomain}</span>

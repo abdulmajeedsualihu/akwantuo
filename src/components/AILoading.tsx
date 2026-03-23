@@ -19,6 +19,20 @@ const steps = [
 
 const AILoading = ({ onComplete, error, onRetry, onSkip }: AILoadingProps) => {
   const [step, setStep] = useState(0);
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSeconds((s) => (s < 180 ? s + 1 : s));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatTime = (s: number) => {
+    const mins = Math.floor(s / 60);
+    const secs = s % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
 
   useEffect(() => {
     if (error) return; // Stop cycling if there's an error
@@ -88,6 +102,9 @@ const AILoading = ({ onComplete, error, onRetry, onSkip }: AILoadingProps) => {
           <p className="text-muted-foreground text-body animate-fade-in" key={step}>
             {steps[step]}
           </p>
+          <div className="mt-2 text-[11px] font-bold tracking-widest text-primary/40 uppercase">
+            Time elapsed: {formatTime(seconds)} / 3:00
+          </div>
         </div>
 
         <div className="w-full bg-secondary rounded-pill h-2 overflow-hidden">

@@ -121,6 +121,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const effectiveUser = currentUser || profileData.phone;
 
     if (!effectiveUser) {
+      console.warn("Publishing blocked: No effective user identified.", { currentUser, phone: profileData.phone });
       toast.info("Please verify your phone number to publish your tours page.");
       return false;
     }

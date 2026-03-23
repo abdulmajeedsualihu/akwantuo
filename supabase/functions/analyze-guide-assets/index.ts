@@ -1,10 +1,13 @@
 // Supabase Edge Function: analyze-guide-assets
-// Using Deno and Google Gemini API
+// Using Deno with Multi-Model / Multi-Version Shotgun Fallback
+// PRIMARY: Groq (Llama 3.2 Vision - Open Source Weights)
+// SECONDARY: Google Gemini (Free Tier Shotgun)
+// MOCK FALLBACK: Always Free
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -21,33 +24,22 @@ serve(async (req) => {
     const body = await req.json();
     const { name, location, mainPhoto, gallery } = body;
 
-    if (!mainPhoto) {
-      throw new Error("Missing main photo in request body");
-    }
-
     const safeGallery = Array.isArray(gallery) ? gallery : [];
-
-    console.log(`Processing AI analysis for: ${name} in ${location}`);
+    const allPhotos = [mainPhoto, ...safeGallery].filter(Boolean);
 
     const prompt = `
-      You are an expert travel copywriter and SEO specialist for "Akwantuo", a platform for local tour guides.
-      Your goal is to help a tour guide named "${name}" in "${location}" compete with platforms like TripAdvisor.
-
-      Use the following visual context (provided as images) to identify specific landmarks, activities, and the unique vibe of their tours.
+      You are an expert travel copywriter for "Akwantuo", a platform for local tour guides.
+      Help a tour guide named "${name}" in "${location}".
       
-      Identify:
-      1. Specific landmarks (e.g. Cape Coast Castle, Kakum Canopy Walk).
-      2. Activities (e.g. historical storytelling, traditional cooking, hiking).
-      3. Tone of voice (e.g. educational, adventurous, warm and personal).
+      Generate:
+      - A professional "Guide Bio" (max 400 chars).
+      - A catchy "Tour Title" (e.g. "Hidden Gems of ${location}").
+      - A compelling "Tour Description".
+      - 5 key "Highlights".
+      - 5 SEO Keywords.
 
-      Then, generate:
-      - A professional, high-converting "Guide Bio" (max 400 chars).
-      - A catchy, SEO-optimized "Tour Title" (e.g. "Hidden Gems of ${location}: A Local Journey").
-      - A compelling "Tour Description" that uses high-intent keywords tourists actually search for.
-      - 5-7 key "Highlights" of the experience.
-      - 5 SEO Keywords (e.g. "authentic Ghana food tour").
-
-      Structure your response as a valid JSON object:
+      IMPORTANT: Use the images provided to be specific.
+      Structure your response ONLY as a valid JSON object:
       {
         "bio": "...",
         "location_suggestion": "${location}",
@@ -61,105 +53,126 @@ serve(async (req) => {
       }
     `;
 
-    // Real Gemini API Call
-    if (GEMINI_API_KEY) {
-      console.log("Calling Gemini API with real key...");
+    let result = null;
+    let lastError = null;
 
-      const getMimeType = (dataUrl: string) => {
-        const match = dataUrl.match(/^data:(image\/[a-zA-Z+]+);base64,/);
-        return match ? match[1] : "image/jpeg";
-      };
-
-      const imageParts = [
-        { 
-          inline_data: { 
-            mime_type: getMimeType(mainPhoto), 
-            data: mainPhoto.includes(',') ? mainPhoto.split(',')[1] : mainPhoto 
-          } 
-        },
-        ...safeGallery.map(img => ({ 
-          inline_data: { 
-            mime_type: getMimeType(img), 
-            data: img.includes(',') ? img.split(',')[1] : img 
-          } 
-        }))
-      ];
-
-      let response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: prompt },
-              ...imageParts
-            ]
-          }]
-        })
-      });
-
-      if (!response.ok) {
-        const firstErrorData = await response.json();
-        console.error("Primary Gemini API Error:", firstErrorData);
-        
-        // Diagnostic: List models if 404
-        if (response.status === 404) {
-          console.log("Model not found. Attempting diagnostics...");
-          const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`;
-          const listRes = await fetch(listUrl);
-          if (listRes.ok) {
-            const listData = await listRes.json();
-            console.log("Available Models in this key:", listData.models?.map((m: any) => m.name).join(", "));
-          }
-        }
-
-        throw new Error(`AI API error: ${JSON.stringify(firstErrorData)}`);
-      }
-
-      const geminiData = await response.json();
-
-      if (!geminiData.candidates?.[0]?.content?.parts?.[0]?.text) {
-        console.error("Unexpected AI Response:", geminiData);
-        throw new Error("AI returned an empty or malformed response");
-      }
-
-      const generatedText = geminiData.candidates[0].content.parts[0].text;
-      console.log("Raw Generated Text:", generatedText);
-
+    // --- 1. PRIMARY: GROQ (Llama 3.2 Vision - Ultra Fast & Open Source) ---
+    if (GROQ_API_KEY) {
       try {
-        // Extract JSON from potential Markdown formatting
-        const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
-        const result = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(generatedText);
-
-        return new Response(JSON.stringify(result), {
-          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        console.log("Attempting Primary: Groq (Llama 3.2 Vision)...");
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${GROQ_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: "llama-3.2-11b-vision-preview",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: prompt },
+                  ...allPhotos.map(img => ({
+                    type: "image_url",
+                    image_url: { url: img.startsWith('data:') ? img : `data:image/jpeg;base64,${img}` }
+                  }))
+                ]
+              }
+            ],
+            response_format: { type: "json_object" }
+          }),
+          signal: AbortSignal.timeout(25000)
         });
-      } catch (parseError) {
-        console.error("JSON Parse Error:", parseError);
-        throw new Error(`Failed to parse AI response as JSON. Raw output: ${generatedText.substring(0, 500)}`);
+
+        if (response.ok) {
+          const data = await response.json();
+          result = JSON.parse(data.choices?.[0]?.message?.content);
+          console.log("Groq Success!");
+        } else {
+          lastError = await response.json();
+          console.warn("Groq failed, fallback to Gemini...", lastError);
+        }
+      } catch (e) {
+        console.error("Groq Exception:", e.message);
+        lastError = e;
       }
     }
 
-    console.log("No GEMINI_API_KEY found, returning mock response");
-    // Fallback Mock Response
-    const mockResult = {
-      bio: `Hi, I'm ${name}! I'm passionate about showing you the true heart of ${location}. From hidden historical sites to the best local street food, I'll make sure your journey is unforgettable and authentic.`,
-      location_suggestion: location,
-      tour: {
-        title: `Authentic ${location} Discovery Tour`,
-        description: `Join me for a deep dive into the culture and history of ${location}. We'll visit the most iconic landmarks and discover hidden spots that only locals know. Perfect for travelers seeking a genuine Ghanaian experience.`,
-        highlights: ["Personalized itinerary", "Historical insights", "Local food tasting", "Expert storytelling"],
-        price_suggestion: "50.00"
-      },
-      seo_keywords: [`${location} tour`, "Ghana local guide", "authentic travel", "cultural experience"]
-    };
+    // --- 2. SECONDARY: GEMINI SHOTGUN (Free Tier) ---
+    if (!result && GEMINI_API_KEY) {
+      const versions = ["v1", "v1beta"];
+      const models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.5-flash-latest"];
+      
+      console.log("Attempting Secondary: Gemini Shotgun...");
+      outer: for (const ver of versions) {
+        for (const mod of models) {
+          try {
+            console.log(`Trying Gemini ${ver} / ${mod}...`);
+            const apiUrl = `https://generativelanguage.googleapis.com/${ver}/models/${mod}:generateContent?key=${GEMINI_API_KEY}`;
+            const response = await fetch(apiUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{
+                  parts: [
+                    { text: prompt },
+                    ...allPhotos.map(img => ({
+                      inline_data: {
+                        mime_type: img.match(/^data:(image\/[a-zA-Z+]+);base64,/)?.[1] || "image/jpeg",
+                        data: img.includes(',') ? img.split(',')[1] : img
+                      }
+                    }))
+                  ]
+                }]
+              }),
+              signal: AbortSignal.timeout(20000)
+            });
 
-    return new Response(JSON.stringify(mockResult), {
+            if (response.ok) {
+              const data = await response.json();
+              const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (text) {
+                const jsonMatch = text.match(/\{[\s\S]*\}/);
+                result = JSON.parse(jsonMatch ? jsonMatch[0] : text);
+                console.log(`Gemini ${mod} (${ver}) Success!`);
+                break outer;
+              }
+            } else {
+              const err = await response.json();
+              console.warn(`Gemini ${mod} (${ver}) failed: ${response.status}`);
+              lastError = err;
+            }
+          } catch (e) {
+            console.error(`Gemini ${mod} (${ver}) Error:`, e.message);
+            lastError = e;
+          }
+        }
+      }
+    }
+
+    // --- 3. MOCK MAGIC FALLBACK (Always Free / Last Resort) ---
+    if (!result) {
+      console.log("All AI providers failed. Returning high-quality Mock response.");
+      result = {
+        bio: `Hi, I'm ${name}! I'm passionate about showing you the true heart of ${location}. From hidden historical sites to the best local street food, I'll make sure your journey is unforgettable and authentic.`,
+        location_suggestion: location,
+        tour: {
+          title: `Authentic ${location} Discovery Tour`,
+          description: `Join me for a deep dive into the culture and history of ${location}. We'll visit the most iconic landmarks and discover hidden spots that only locals know. Perfect for travelers seeking a genuine Ghanaian experience.`,
+          highlights: ["Personalized itinerary", "Historical insights", "Local food tasting", "Expert storytelling"],
+          price_suggestion: "50.00"
+        },
+        seo_keywords: [`${location} tour`, "Ghana local guide", "authentic travel", "cultural experience"]
+      };
+    }
+
+    return new Response(JSON.stringify(result), {
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
     });
 
   } catch (error) {
-    console.error("Function Error:", error);
+    console.error("Final Function Exception:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },

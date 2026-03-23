@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import HeroLanding from "@/components/HeroLanding";
 import OnboardingPhone from "@/components/OnboardingPhone";
@@ -32,16 +32,29 @@ const Index = () => {
   } = useOnboarding();
 
   const [aiError, setAiError] = useState<string | null>(null);
+  const analysisTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (analysisTimeoutRef.current) clearTimeout(analysisTimeoutRef.current);
+    };
+  }, []);
 
   const runAnalysis = useCallback(async () => {
     if (!photosData?.mainPhoto) {
       console.warn("AI Analysis triggered but mainPhoto is missing. Waiting...");
       return;
     }
+    if (analysisTimeoutRef.current) clearTimeout(analysisTimeoutRef.current);
     setAiError(null);
-    const timeoutId = setTimeout(() => {
-      setAiError("Request timed out. The AI is taking longer than usual.");
-    }, 45000); // 45 second timeout for heavy vision tasks
+    
+    analysisTimeoutRef.current = setTimeout(() => {
+      console.log("AI Analysis Timeout Reached - Redirecting to manual mode...");
+      setAiError("Request timed out. The AI was taking longer than usual. You can finish manually now.");
+      toast.info("AI is a bit slow. Let's finish your profile manually!");
+      navigate("/onboarding/profile");
+    }, 180000); // 3 minute timeout as requested
 
     try {
       console.log("Starting real-time AI analysis...");
@@ -51,7 +64,11 @@ const Index = () => {
         photosData.mainPhoto || "",
         photosData.gallery || []
       );
-      clearTimeout(timeoutId);
+      
+      if (analysisTimeoutRef.current) {
+        clearTimeout(analysisTimeoutRef.current);
+        analysisTimeoutRef.current = null;
+      }
 
       if (result) {
         setAiResult(result);
@@ -84,6 +101,7 @@ const Index = () => {
 
   // Handle Automatic AI Trigger when data is ready
   useEffect(() => {
+    console.log("Checking AI Trigger state:", { path, hasPhoto: !!photosData?.mainPhoto, hasResult: !!aiResult, hasError: !!aiError });
     if (path === "/onboarding/ai-loading" && photosData?.mainPhoto && !aiResult && !aiError) {
       console.log("Auto-triggering AI analysis: Data is ready.");
       runAnalysis();
@@ -135,8 +153,10 @@ const Index = () => {
               displayName: pData?.displayName || prev.displayName,
               location: pData?.location || prev.location,
             }));
+            // Save phone to localStorage to persist session if page is refreshed
+            saveVendorPhone(phone);
+            
             if (isReturning) {
-              saveVendorPhone(phone);
               navigate("/dashboard");
             } else {
               navigate("/onboarding/photos");
@@ -170,7 +190,7 @@ const Index = () => {
         <PhotoUpload
           onBack={() => navigate("/onboarding/phone")}
           onContinue={(data: { mainPhoto: string; gallery: string[] }) => {
-            setPhotosData(data);
+            setPhotosData((prev: any) => ({ ...prev, ...data }));
             navigate("/onboarding/ai-loading");
           }}
           onSkip={() => navigate("/onboarding/profile")}
@@ -200,7 +220,7 @@ const Index = () => {
           }}
           onBack={() => navigate("/onboarding/profile")}
           onContinue={(data: any) => {
-            setTourData(data);
+            setTourData((prev: any) => ({ ...prev, ...data }));
             navigate("/onboarding/preview");
           }}
         />
@@ -227,6 +247,7 @@ const Index = () => {
         <OnboardingSuccess
           displayName={profileData.displayName}
           slug={landingSlug}
+          description={tourData.description}
           onDone={() => {
             saveVendorPhone(profileData.phone);
             navigate("/dashboard");

@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import AkwantuoLogo from "./AkwantuoLogo";
 import { cn } from "@/lib/utils";
 import { getProfileByPhone, createInitialProfile } from "@/lib/onboardingService";
+import { supabase } from "@/integrations/supabase/client";
+import { buildTourSiteSlug } from "@/lib/share";
 
 const AFRICAN_COUNTRY_CODES = [
   { name: "Ghana", code: "+233", flag: "🇬🇭", placeholder: "024 123 4567" },
@@ -140,19 +142,30 @@ const OnboardingPhone = ({ onComplete }: OnboardingPhoneProps) => {
       const isReturning = !!existingProfile;
 
       let profile = existingProfile;
+      let storefrontData = null;
+
       if (!profile) {
         toast.info("Creating your guide account...");
         profile = await createInitialProfile(fullPhone);
       } else {
         toast.success("Welcome back! Taking you to your dashboard... 🎉");
+        // Fetch storefront for returning vendor
+        const { data: sf } = await supabase
+          .from("storefronts")
+          .select("*")
+          .eq("user_id", profile.user_id)
+          .maybeSingle();
+        storefrontData = sf;
       }
 
       const profileData = {
-        displayName: profile?.display_name || "",
-        location: location || profile?.location || "",
+        displayName: profile?.display_name || storefrontData?.business_name || "",
+        location: profile?.location || storefrontData?.location || location || "",
         phone: fullPhone,
-        bio: "",
-        languages: ["English", "Twi"],
+        bio: profile?.bio || "",
+        languages: ["English", "Twi"], // Fallback or fetch if we add to schema
+        category: storefrontData?.category || profile?.business_category || "",
+        userId: profile?.user_id,
       };
 
       if (!isReturning) toast.success("Verified! Welcome aboard 🎉");

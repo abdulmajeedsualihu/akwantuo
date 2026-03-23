@@ -34,9 +34,13 @@ export const slugifyDisplayName = (displayName?: string) => {
     .replace(/^-+|-+$/g, "");
 };
 
-export const buildTourSiteSlug = (displayName?: string, _userId?: string) => {
-  const baseSlug = slugifyDisplayName(displayName);
-  return baseSlug || "tour";
+export const buildTourSiteSlug = (displayName?: string, userId?: string) => {
+  const baseSlug = slugifyDisplayName(displayName) || "tour";
+  if (!userId) return baseSlug;
+  
+  // Extract last 4 chars of userId for uniqueness in demo mode
+  const suffix = userId.includes("-") ? userId.split("-").pop()?.slice(-4) : userId.slice(-4);
+  return `${baseSlug}-${suffix}`;
 };
 
 export const buildLandingUrl = (params: { slug?: string; displayName?: string }) => {

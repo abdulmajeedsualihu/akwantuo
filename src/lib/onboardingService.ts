@@ -56,7 +56,7 @@ const buildDescriptionPayload = (
   gallery: photos.gallery,
 });
 
-const parseDescriptionPayload = (value: string | null): DescriptionPayload => {
+export const parseDescriptionPayload = (value: string | null): DescriptionPayload => {
   if (!value) {
     return { highlights: [], languages: [] };
   }
@@ -289,4 +289,116 @@ export const getStorefrontByPhone = async (phone: string): Promise<string | null
   if (sfError || !storefront) return null;
 
   return buildTourSiteSlug(storefront.business_name, storefront.user_id);
+};
+
+export const getBookings = async (guideId: string) => {
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("*")
+    .eq("guide_id", guideId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching bookings:", error);
+    return [];
+  }
+  return data;
+};
+
+export const updateBookingStatus = async (bookingId: string, status: string) => {
+  const { data, error } = await supabase
+    .from("bookings")
+    .update({ status })
+    .eq("id", bookingId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating booking status:", error);
+    throw error;
+  }
+  return data;
+};
+
+export const toggleStorefrontLive = async (userId: string, isLive: boolean) => {
+  const { data, error } = await supabase
+    .from("storefronts")
+    .update({ is_live: isLive })
+    .eq("user_id", userId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error toggling storefront live status:", error);
+    throw error;
+  }
+  return data;
+};
+
+export const getStorefrontLiveStatus = async (userId: string) => {
+  const { data, error } = await supabase
+    .from("storefronts")
+    .select("is_live")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error fetching storefront live status:", error);
+    return null;
+  }
+  return data?.is_live ?? false;
+};
+
+export interface WorkingHours {
+  enabled: boolean;
+  start: string;
+  end: string;
+}
+
+export interface AvailabilitySettings {
+  working_hours: Record<string, WorkingHours>;
+}
+
+export const DEFAULT_WORKING_HOURS: Record<string, WorkingHours> = {
+  Monday:    { enabled: true,  start: "09:00", end: "17:00" },
+  Tuesday:   { enabled: true,  start: "09:00", end: "17:00" },
+  Wednesday: { enabled: true,  start: "09:00", end: "17:00" },
+  Thursday:  { enabled: true,  start: "09:00", end: "17:00" },
+  Friday:    { enabled: true,  start: "09:00", end: "17:00" },
+  Saturday:  { enabled: false, start: "09:00", end: "17:00" },
+  Sunday:    { enabled: false, start: "09:00", end: "17:00" },
+};
+
+export const saveAvailabilitySettings = async (
+  userId: string,
+  settings: AvailabilitySettings
+) => {
+  const { data, error } = await supabase
+    .from("storefronts")
+    .update({ availability_settings: settings as any })
+    .eq("user_id", userId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error saving availability settings:", error);
+    throw error;
+  }
+  return data;
+};
+
+export const getAvailabilitySettings = async (
+  userId: string
+): Promise<AvailabilitySettings | null> => {
+  const { data, error } = await supabase
+    .from("storefronts")
+    .select("availability_settings")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error fetching availability settings:", error);
+    return null;
+  }
+  return (data?.availability_settings as unknown as AvailabilitySettings) ?? null;
 };

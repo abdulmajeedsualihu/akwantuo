@@ -1,6 +1,14 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
-import { saveOnboardingData, getLatestTourSites, getProfileByPhone, getStorefrontByPhone, LandingPageRecord } from "@/lib/onboardingService";
+import {
+  saveOnboardingData,
+  getLatestTourSites,
+  getProfileByPhone,
+  LandingPageRecord,
+  loadLandingRecord,
+  parseDescriptionPayload
+} from "@/lib/onboardingService";
+import { buildTourSiteSlug, slugifyDisplayName } from "@/lib/share";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -25,7 +33,7 @@ interface OnboardingContextType {
 const VENDOR_PHONE_KEY = "akwantuo_vendor_phone";
 
 export const saveVendorPhone = (phone: string) => {
-  try { localStorage.setItem(VENDOR_PHONE_KEY, phone); } catch {}
+  try { localStorage.setItem(VENDOR_PHONE_KEY, phone); } catch { }
 };
 
 export const loadVendorPhone = (): string | null => {
@@ -33,7 +41,7 @@ export const loadVendorPhone = (): string | null => {
 };
 
 export const clearVendorPhone = () => {
-  try { localStorage.removeItem(VENDOR_PHONE_KEY); } catch {}
+  try { localStorage.removeItem(VENDOR_PHONE_KEY); } catch { }
 };
 
 const DEFAULT_PROFILE = {
@@ -89,15 +97,42 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           return;
         }
 
+        const storefront = await supabase
+          .from("storefronts")
+          .select("*")
+          .eq("user_id", profile.user_id)
+          .maybeSingle();
+
+        const description = parseDescriptionPayload(storefront.data?.description || null);
+
         setProfileData((prev: any) => ({
           ...prev,
+          userId: profile.user_id,
           phone: savedPhone,
-          displayName: profile.display_name || "",
-          location: profile.location || "",
+          displayName: profile.display_name || storefront.data?.business_name || "",
+          location: profile.location || storefront.data?.location || "",
+          bio: profile.bio || description.bio || "",
+          languages: description.languages.length > 0 ? description.languages : ["English", "Twi"],
         }));
 
-        const slug = await getStorefrontByPhone(savedPhone);
-        if (slug) setLandingSlug(slug);
+        setTourData((prev: any) => ({
+          ...prev,
+          title: profile.business_category || storefront.data?.category || prev.title,
+          description: description.text || prev.description,
+          highlights: description.highlights || prev.highlights,
+          price: description.price || prev.price,
+          duration: description.duration || prev.duration,
+        }));
+
+        if (storefront.data) {
+          setPhotosData({
+            mainPhoto: storefront.data.main_image || description.mainPhoto || "",
+            gallery: storefront.data.gallery || description.gallery || [],
+          });
+
+          const slug = buildTourSiteSlug(storefront.data.business_name, storefront.data.user_id);
+          setLandingSlug(slug);
+        }
       } catch (err) {
         console.error("Failed to restore session:", err);
       } finally {
@@ -132,6 +167,10 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const record = await saveOnboardingData(effectiveUser, profileData, tourData, photosData);
       console.log("Publishing success - record returned:", record);
       setLandingSlug(record.slug);
+      setProfileData((prev: any) => ({
+        ...prev,
+        userId: record.storefront.user_id
+      }));
       return true;
     } catch (error: any) {
       console.error("Publishing error:", error);
@@ -164,7 +203,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 export const useOnboarding = () => {
   const context = useContext(OnboardingContext);
   if (context === undefined) {
-    throw new Error("useOnboarding must be used within an OnboardingProvider");
+    throw new Error("Use Onboarding Context is required");
   }
   return context;
 };

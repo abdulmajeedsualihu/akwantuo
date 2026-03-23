@@ -3,7 +3,7 @@ import {
   LayoutDashboard, User, CalendarCheck, Settings, LogOut,
   Eye, Ticket, Clock, ExternalLink,
   Menu, Bell, Share2, Calendar, CheckCircle2, Copy, Home,
-  XCircle, Check
+  XCircle, Check, MapPin
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import AkwantuoLogo from "./AkwantuoLogo";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { slugifyDisplayName, buildLandingUrl } from "@/lib/share";
+import { getBookings, updateBookingStatus, toggleStorefrontLive, getStorefrontLiveStatus, saveAvailabilitySettings, getAvailabilitySettings, DEFAULT_WORKING_HOURS, WorkingHours } from "@/lib/onboardingService";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
@@ -19,6 +20,9 @@ interface VendorDashboardProps {
   displayName: string;
   photo?: string;
   slug?: string;
+  userId?: string;
+  category?: string;
+  location?: string;
   onLogout?: () => void;
   onViewPage?: () => void;
 }
@@ -98,64 +102,118 @@ const STATUS_STYLES: Record<string, string> = {
 
 const BOTTOM_NAV: { id: NavItem; label: string; icon: React.ReactNode; href?: string }[] = [
   { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
-  { id: "bookings", label: "Bookings", icon: <CalendarCheck className="w-5 h-5" /> },
-  { id: "mypage", label: "My Page", icon: <User className="w-5 h-5" /> },
-  { id: "settings", label: "Settings", icon: <Settings className="w-5 h-5" /> },
+  { id: "bookings", label: "My Bookings", icon: <CalendarCheck className="w-5 h-5" /> },
+  { id: "availability", label: "Availability", icon: <Clock className="w-5 h-5" /> },
+  { id: "mypage", label: "Public Page", icon: <User className="w-5 h-5" /> },
+  { id: "settings", label: "Account", icon: <Settings className="w-5 h-5" /> },
   { id: "home", label: "Home", icon: <Home className="w-5 h-5" />, href: "/" },
 ];
 
-type NavItem = "dashboard" | "bookings" | "mypage" | "settings" | "home";
+type NavItem = "dashboard" | "bookings" | "availability" | "mypage" | "settings" | "home";
 
-const VendorDashboard = ({ displayName, photo, slug, onLogout, onViewPage }: VendorDashboardProps) => {
+const VendorDashboard = ({ displayName, photo, slug, userId, category, location, onLogout, onViewPage }: VendorDashboardProps) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [activeNav, setActiveNav] = useState<NavItem>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [bookings, setBookings] = useState<any[]>([]);
-  const [loadingBookings, setLoadingBookings] = useState(true);
+  const [isLoadingBookings, setIsLoadingBookings] = useState(true);
+  const [isLive, setIsLive] = useState(true);
+  const [isTogglingLive, setIsTogglingLive] = useState(false);
+  const [workingHours, setWorkingHours] = useState<Record<string, WorkingHours>>(DEFAULT_WORKING_HOURS);
+  const [isSavingAvailability, setIsSavingAvailability] = useState(false);
 
-  console.log("VendorDashboard props:", { displayName, slug });
+  console.log("VendorDashboard props:", { displayName, slug, userId });
   const publicUrl = buildLandingUrl({ slug, displayName });
-  console.log("Calculated publicUrl:", publicUrl);
 
   useEffect(() => {
-    if (user?.id) {
-      fetchBookings();
+    if (userId) {
+      loadBookings();
+      loadLiveStatus();
+      loadAvailabilitySettings();
     }
-  }, [user?.id]);
+  }, [userId]);
 
-  const fetchBookings = async () => {
+  const loadAvailabilitySettings = async () => {
+    if (!userId) return;
     try {
-      setLoadingBookings(true);
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("*")
-        .eq("guide_id", user?.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setBookings(data || []);
-    } catch (error: any) {
-      console.error("Error fetching bookings:", error);
-      toast.error("Failed to load bookings");
-    } finally {
-      setLoadingBookings(false);
+      const settings = await getAvailabilitySettings(userId);
+      if (settings?.working_hours) {
+        setWorkingHours(settings.working_hours);
+      }
+    } catch (err) {
+      console.error("Failed to load availability settings:", err);
     }
   };
 
-  const updateBookingStatus = async (id: string, newStatus: string) => {
+  const handleSaveAvailability = async () => {
+    if (!userId) return;
+    setIsSavingAvailability(true);
     try {
-      const { error } = await supabase
-        .from("bookings")
-        .update({ status: newStatus })
-        .eq("id", id);
+      await saveAvailabilitySettings(userId, { working_hours: workingHours });
+      toast.success("Availability settings saved!");
+    } catch (err) {
+      toast.error("Failed to save availability settings.");
+    } finally {
+      setIsSavingAvailability(false);
+    }
+  };
 
-      if (error) throw error;
-      
-      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: newStatus } : b));
-      toast.success(`Booking ${newStatus}`);
-    } catch (error: any) {
-      toast.error("Failed to update booking");
+  const updateDayHours = (day: string, field: keyof WorkingHours, value: string | boolean) => {
+    setWorkingHours(prev => ({
+      ...prev,
+      [day]: { ...prev[day], [field]: value },
+    }));
+  };
+
+  const loadLiveStatus = async () => {
+    if (!userId) return;
+    try {
+      const status = await getStorefrontLiveStatus(userId);
+      setIsLive(status);
+    } catch (err) {
+      console.error("Failed to load live status:", err);
+    }
+  };
+
+  const loadBookings = async () => {
+    if (!userId) return;
+    setIsLoadingBookings(true);
+    try {
+      console.log("Fetching bookings for guideId:", userId);
+      const data = await getBookings(userId);
+      console.log("Bookings fetched:", data);
+      setBookings(data || []);
+    } catch (error) {
+      console.error("Failed to load bookings:", error);
+      toast.error("Failed to load bookings");
+    } finally {
+      setIsLoadingBookings(false);
+    }
+  };
+
+  const handleUpdateStatus = async (bookingId: string, newStatus: string) => {
+    try {
+      await updateBookingStatus(bookingId, newStatus);
+      toast.success(`Booking ${newStatus} successfully!`);
+      // Update local state instead of re-fetching everything
+      setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: newStatus } : b));
+    } catch (error) {
+      toast.error("Failed to update status. Please try again.");
+    }
+  };
+
+  const handleToggleLive = async () => {
+    if (!userId || isTogglingLive) return;
+    setIsTogglingLive(true);
+    const newStatus = !isLive;
+    try {
+      await toggleStorefrontLive(userId, newStatus);
+      setIsLive(newStatus);
+      toast.success(newStatus ? "Your page is now LIVE and accepting bookings!" : "Your page is now HIDDEN and NOT accepting bookings.");
+    } catch (err) {
+      toast.error("Failed to update status.");
+    } finally {
+      setIsTogglingLive(false);
     }
   };
 
@@ -193,7 +251,13 @@ const VendorDashboard = ({ displayName, photo, slug, onLogout, onViewPage }: Ven
           </div>
           <div className="text-center">
             <p className="font-black text-charcoal text-sm leading-none">{displayName || "Akwantuo Guide"}</p>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-1.5 flex items-center justify-center gap-1.5">
+            {location && (
+              <p className="text-[10px] font-bold text-primary-navy/70 mt-1 flex items-center justify-center gap-1">
+                <MapPin className="w-3 h-3" />
+                {location}
+              </p>
+            )}
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-2.5 flex items-center justify-center gap-1.5">
               Guide Dashboard
               <span className="inline-block w-1 h-1 rounded-full bg-emerald-500" />
             </p>
@@ -291,196 +355,386 @@ const VendorDashboard = ({ displayName, photo, slug, onLogout, onViewPage }: Ven
             </a>
           </div>
         </div>
-
         {/* Page Content */}
         <main className="flex-1 px-4 lg:px-8 py-6 max-w-5xl w-full mx-auto space-y-5 pb-28 lg:pb-8 animate-in fade-in duration-500">
 
-          {/* ── Greeting ── */}
-          <div className="hidden lg:block">
-            <h2 className="text-2xl font-black text-charcoal">
-              Hey, {displayName.toLocaleUpperCase() || "Guide"} 👋
-            </h2>
-            <p className="text-sm text-muted-foreground font-medium mt-0.5">Here's what's happening with your tour page today.</p>
-          </div>
-
-          {/* ── Live Banner ── */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-5 py-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                <CheckCircle2 className="w-6 h-6 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-sm font-black text-emerald-700">Your page is live!</p>
-                <p className="text-xs text-muted-foreground font-medium truncate max-w-[180px] sm:max-w-xs">{publicUrl}</p>
-              </div>
-            </div>
-            <button
-              onClick={handleCopyLink}
-              className="flex items-center gap-2 bg-primary-navy text-white text-xs font-black px-4 py-2.5 rounded-xl hover:bg-primary-navy/90 transition-colors flex-shrink-0"
-            >
-              <Copy className="w-3.5 h-3.5" />
-              Copy
-            </button>
-          </div>
-
-          {/* ── Stats ── */}
-          <div className="grid grid-cols-3 gap-3 lg:gap-4">
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 lg:p-5 space-y-2">
-              <p className="text-[11px] font-bold text-muted-foreground truncate">Total views</p>
-              <div className="flex items-end justify-between gap-1">
-                <p className="text-2xl lg:text-3xl font-black text-charcoal">1,284</p>
-                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full flex-shrink-0 text-emerald-700 bg-emerald-50">+12%</span>
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 lg:p-5 space-y-2">
-              <p className="text-[11px] font-bold text-muted-foreground truncate">Bookings</p>
-              <div className="flex items-end justify-between gap-1">
-                <p className="text-2xl lg:text-3xl font-black text-charcoal">{bookings.length}</p>
-                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full flex-shrink-0 text-emerald-700 bg-emerald-50">Total</span>
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 lg:p-5 space-y-2">
-              <p className="text-[11px] font-bold text-muted-foreground truncate">Pending</p>
-              <div className="flex items-end justify-between gap-1">
-                <p className="text-2xl lg:text-3xl font-black text-charcoal">
-                  {bookings.filter(b => b.status === 'pending').length}
+          {activeNav === "dashboard" && (
+            <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
+              {/* ── Greeting ── */}
+              <div className="hidden lg:block">
+                <h2 className="text-2xl font-black text-charcoal">
+                  Hey, {displayName.toLocaleUpperCase() || "Guide"} 👋
+                </h2>
+                <p className="text-sm text-muted-foreground font-medium mt-0.5">
+                  Manage your <span className="text-primary-navy font-bold">{category || "Tour"}</span> experience in <span className="text-primary-navy font-bold">{location || "Ghana"}</span>.
                 </p>
-                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full flex-shrink-0 text-orange-700 bg-orange-50">Active</span>
               </div>
-            </div>
-          </div>
 
-          {/* ── Recent Booking Requests ── */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-black text-charcoal">Recent booking requests</h2>
-              <button className="text-xs font-black text-primary-navy hover:underline">View all</button>
-            </div>
-
-            {/* Mobile Cards */}
-            <div className="lg:hidden space-y-3">
-              {loadingBookings ? (
-                <div className="p-8 text-center text-muted-foreground font-bold">Loading bookings...</div>
-              ) : bookings.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground font-bold bg-white rounded-2xl border border-dashed border-slate-200">No bookings yet</div>
-              ) : (
-                bookings.map((b, i) => (
-                  <div key={i} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-full bg-slate-100 flex items-center justify-center text-primary-navy font-black border-2 border-white shadow-sm">
-                          {b.tourist_name[0]}
-                        </div>
-                        <div>
-                          <p className="text-sm font-black text-charcoal">{b.tourist_name}</p>
-                          <p className="text-xs text-muted-foreground font-medium">{b.tourist_phone}</p>
-                        </div>
-                      </div>
-                      <span className={cn("text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider flex-shrink-0", STATUS_STYLES[b.status])}>
-                        {b.status}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground font-medium border-t border-slate-50 pt-3 mb-3">
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5" />
-                        {new Date(b.booking_date).toLocaleDateString()}
-                      </div>
-                      <span>{formatDistanceToNow(new Date(b.created_at))} ago</span>
-                    </div>
-                    {b.status === 'pending' && (
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          onClick={() => updateBookingStatus(b.id, 'confirmed')}
-                          className="flex-1 bg-emerald-500 hover:bg-emerald-600 h-10 rounded-xl font-bold"
-                        >
-                          Confirm
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => updateBookingStatus(b.id, 'cancelled')}
-                          className="flex-1 border-slate-200 h-10 rounded-xl font-bold text-red-500 hover:bg-red-50"
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    )}
+              {/* ── Live Banner ── */}
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-5 py-4 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                    <CheckCircle2 className="w-6 h-6 text-emerald-600" />
                   </div>
-                ))
-              )}
-            </div>
+                  <div>
+                    <p className="text-sm font-black text-emerald-700">Your page is live!</p>
+                    <p className="text-xs text-muted-foreground font-medium truncate max-w-[180px] sm:max-w-xs">{publicUrl}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleCopyLink}
+                  className="flex items-center gap-2 bg-primary-navy text-white text-xs font-black px-4 py-2.5 rounded-xl hover:bg-primary-navy/90 transition-colors flex-shrink-0"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  Copy
+                </button>
+              </div>
 
-            {/* Desktop Table */}
-            <div className="hidden lg:block bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-              {loadingBookings ? (
-                <div className="p-12 text-center text-muted-foreground font-bold">Loading bookings...</div>
-              ) : bookings.length === 0 ? (
-                <div className="p-12 text-center text-muted-foreground font-bold italic">No bookings found in your records.</div>
-              ) : (
-                <table className="w-full text-left">
-                  <thead className="bg-slate-50/50">
-                    <tr className="border-b border-slate-100">
-                      <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Tourist Info</th>
-                      <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Tour Date</th>
-                      <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Status</th>
-                      <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bookings.map((b) => (
-                      <tr key={b.id} className="border-b border-slate-100 last:border-none hover:bg-slate-50/30 transition-colors">
-                        <td className="px-6 py-5">
+              {/* ── Stats ── */}
+              <div className="grid grid-cols-3 gap-3 lg:gap-4">
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 lg:p-5 space-y-2">
+                  <p className="text-[11px] font-bold text-muted-foreground truncate uppercase tracking-wider">Profile Impressions</p>
+                  <div className="flex items-end justify-between gap-1">
+                    <p className="text-2xl lg:text-3xl font-black text-charcoal">1,284</p>
+                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full flex-shrink-0 text-emerald-700 bg-emerald-50">+12%</span>
+                  </div>
+                </div>
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 lg:p-5 space-y-2">
+                  <p className="text-[11px] font-bold text-muted-foreground truncate uppercase tracking-wider">{category || "Tour"} Bookings</p>
+                  <div className="flex items-end justify-between gap-1">
+                    <p className="text-2xl lg:text-3xl font-black text-charcoal">{bookings.length}</p>
+                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full flex-shrink-0 text-emerald-700 bg-emerald-50">Total</span>
+                  </div>
+                </div>
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 lg:p-5 space-y-2">
+                  <p className="text-[11px] font-bold text-muted-foreground truncate uppercase tracking-wider">Active Requests</p>
+                  <div className="flex items-end justify-between gap-1">
+                    <p className="text-2xl lg:text-3xl font-black text-charcoal">
+                      {bookings.filter(b => b.status === "pending").length}
+                    </p>
+                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full flex-shrink-0 text-orange-700 bg-orange-50">Active</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Business Overview ── */}
+              <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="space-y-1 text-center md:text-left">
+                  <h3 className="text-lg font-black text-charcoal">{category || "Experience Guide"}</h3>
+                  <div className="flex items-center justify-center md:justify-start gap-2 text-sm font-bold text-muted-foreground">
+                    <MapPin className="w-4 h-4 text-primary-navy" />
+                    {location || "Ghana"}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="px-5 py-3 bg-slate-50/50 rounded-2xl border border-slate-100 text-center min-w-[100px]">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Status</p>
+                    <p className={cn("text-xs font-black uppercase", isLive ? "text-emerald-600" : "text-amber-600")}>
+                      {isLive ? "Page Live" : "Page Hidden"}
+                    </p>
+                  </div>
+                  <div className="px-5 py-3 bg-slate-50/50 rounded-2xl border border-slate-100 text-center min-w-[100px]">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Profile</p>
+                    <p className="text-xs font-black text-primary-navy uppercase">100% Complete</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Recent Booking Requests ── */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-base font-black text-charcoal">Recent booking requests</h2>
+                  <button onClick={() => setActiveNav("bookings")} className="text-xs font-black text-primary-navy hover:underline">View all</button>
+                </div>
+
+                {/* Mobile Cards (Condensed) */}
+                <div className="lg:hidden space-y-3">
+                  {isLoadingBookings ? (
+                    <div className="p-8 text-center text-muted-foreground font-bold">Loading bookings...</div>
+                  ) : bookings.length === 0 ? (
+                    <div className="bg-white rounded-2xl p-8 text-center border border-dashed border-slate-200">
+                      <p className="text-slate-400 font-bold">No requests yet.</p>
+                    </div>
+                  ) : (
+                    bookings.slice(0, 3).map((b, i) => (
+                      <div key={b.id || i} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+                        <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-primary-navy font-black border-2 border-white shadow-sm">
-                              {b.tourist_name[0]}
+                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-400 border-2 border-white shadow-sm">
+                              {b.tourist_name?.[0]?.toUpperCase() || "?"}
                             </div>
                             <div>
-                              <p className="text-sm font-bold text-charcoal">{b.tourist_name}</p>
-                              <p className="text-xs text-muted-foreground font-medium">{b.tourist_phone}</p>
+                              <p className="text-sm font-black text-charcoal leading-none mb-1">{b.tourist_name}</p>
+                              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{b.status}</p>
                             </div>
                           </div>
-                        </td>
-                        <td className="px-6 py-5">
-                          <div className="flex items-center gap-2 text-sm text-charcoal font-bold">
-                            <Calendar size={14} className="text-slate-400" />
+                          <span className={cn("text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest", STATUS_STYLES[b.status] || "bg-slate-100")}>
                             {new Date(b.booking_date).toLocaleDateString()}
-                          </div>
-                        </td>
-                        <td className="px-6 py-5">
-                          <span className={cn("text-[11px] font-black px-3 py-1.5 rounded-full uppercase tracking-wider", STATUS_STYLES[b.status])}>
-                            {b.status}
                           </span>
-                        </td>
-                        <td className="px-6 py-5 text-right">
-                          {b.status === 'pending' ? (
-                            <div className="flex items-center justify-end gap-2">
-                              <button 
-                                onClick={() => updateBookingStatus(b.id, 'confirmed')}
-                                className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
-                                title="Confirm Booking"
-                              >
-                                <Check size={16} strokeWidth={3} />
-                              </button>
-                              <button 
-                                onClick={() => updateBookingStatus(b.id, 'cancelled')}
-                                className="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-sm"
-                                title="Cancel Booking"
-                              >
-                                <XCircle size={16} strokeWidth={3} />
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground font-medium italic">Handled</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+                        </div>
+                        {b.status === "pending" && (
+                          <div className="grid grid-cols-2 gap-2 mt-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => handleUpdateStatus(b.id, "cancelled")}
+                              className="rounded-xl font-bold h-8 text-[11px] border-red-100 text-red-500"
+                            >
+                              Decline
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleUpdateStatus(b.id, "confirmed")}
+                              className="rounded-xl font-bold h-8 text-[11px] bg-emerald-500 hover:bg-emerald-600 text-white"
+                            >
+                              Confirm
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Desktop Table (Condensed) */}
+                <div className="hidden lg:block bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                  {isLoadingBookings ? (
+                    <div className="p-8 text-center text-muted-foreground font-bold">Loading bookings...</div>
+                  ) : bookings.length === 0 ? (
+                    <div className="p-12 text-center text-muted-foreground font-bold italic">No bookings found.</div>
+                  ) : (
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-50/50">
+                        <tr className="border-b border-slate-100">
+                          <th className="px-6 py-4 text-[9px] font-black text-muted-foreground uppercase tracking-widest">Tourist</th>
+                          <th className="px-6 py-4 text-[9px] font-black text-muted-foreground uppercase tracking-widest">Date</th>
+                          <th className="px-6 py-4 text-[9px] font-black text-muted-foreground uppercase tracking-widest">Status</th>
+                          <th className="px-6 py-4 text-[9px] font-black text-muted-foreground uppercase tracking-widest text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bookings.slice(0, 5).map((b) => (
+                          <tr key={b.id} className="border-b border-slate-100 last:border-none hover:bg-slate-50/30 transition-colors">
+                            <td className="px-6 py-4">
+                              <p className="text-sm font-bold text-charcoal">{b.tourist_name}</p>
+                            </td>
+                            <td className="px-6 py-4 text-xs font-bold text-slate-600">
+                              {new Date(b.booking_date).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={cn("text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-wider", STATUS_STYLES[b.status] || "bg-slate-100")}>
+                                {b.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              {b.status === "pending" ? (
+                                <div className="flex items-center justify-end gap-2">
+                                  <button onClick={() => handleUpdateStatus(b.id, "confirmed")} className="text-emerald-500 hover:text-emerald-700 transition-colors"><Check size={16} /></button>
+                                  <button onClick={() => handleUpdateStatus(b.id, "cancelled")} className="text-red-500 hover:text-red-700 transition-colors"><XCircle size={16} /></button>
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Handled</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+
+          {activeNav === "bookings" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-black text-charcoal">All Bookings</h2>
+                  <p className="text-sm text-muted-foreground font-medium">Manage all your tour requests from tourists.</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="rounded-xl font-bold bg-white text-[11px] h-9">
+                    Filter by Status
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {isLoadingBookings ? (
+                  <div className="p-12 text-center text-muted-foreground font-bold">Loading your schedule...</div>
+                ) : bookings.length === 0 ? (
+                  <div className="bg-white rounded-2xl p-12 text-center border border-dashed border-slate-200">
+                    <CalendarCheck className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                    <p className="text-slate-400 font-bold">No bookings found.</p>
+                    <p className="text-xs text-muted-foreground mt-1 font-medium">When tourists book through your page, they'll appear here.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
+                    {bookings.map((b) => (
+                      <div key={b.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:border-primary-navy/20 transition-all">
+                        <div className="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-400 border-2 border-white shadow-sm text-xl flex-shrink-0">
+                              {b.tourist_name?.[0]?.toUpperCase()}
+                            </div>
+                            <div>
+                              <h3 className="text-base font-black text-charcoal">{b.tourist_name}</h3>
+                              <div className="flex flex-wrap items-center gap-3 mt-1.5">
+                                <span className="flex items-center gap-1.5 text-xs text-muted-foreground font-bold">
+                                  <Calendar className="w-3.5 h-3.5" />
+                                  Booking: {new Date(b.booking_date).toLocaleDateString()}
+                                </span>
+                                <span className="flex items-center gap-1.5 text-xs text-muted-foreground font-bold">
+                                  <Clock className="w-3.5 h-3.5" />
+                                  Requested: {formatDistanceToNow(new Date(b.created_at))} ago
+                                </span>
+                                <span className="flex items-center gap-1.5 text-xs text-muted-foreground font-bold">
+                                  <Ticket className="w-3.5 h-3.5" />
+                                  Phone: {b.tourist_phone}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center justify-between lg:justify-end gap-3 border-t lg:border-t-0 pt-4 lg:pt-0 border-slate-50">
+                            <span className={cn("text-[11px] font-black px-3 py-1.5 rounded-full uppercase tracking-wider", STATUS_STYLES[b.status] || "bg-slate-100")}>
+                              {b.status}
+                            </span>
+                            
+                            {b.status === "pending" && (
+                              <div className="flex gap-2">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  onClick={() => handleUpdateStatus(b.id, "cancelled")}
+                                  className="rounded-xl font-black h-10 px-4 text-red-500 hover:bg-red-50 border-red-50"
+                                >
+                                  Decline
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => handleUpdateStatus(b.id, "confirmed")}
+                                  className="rounded-xl font-black h-10 px-6 bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-100"
+                                >
+                                  Confirm
+                                </Button>
+                              </div>
+                            )}
+                            
+                            {b.status === "confirmed" && (
+                              <button className="flex items-center gap-2 text-primary-navy font-black text-xs hover:underline">
+                                <ExternalLink size={14} /> Contact Tourist
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeNav === "availability" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+              <div>
+                <h2 className="text-2xl font-black text-charcoal">Booking Availability</h2>
+                <p className="text-sm text-muted-foreground font-medium">Control when you are available for tours.</p>
+              </div>
+
+              <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8 max-w-2xl">
+                <div className="space-y-8">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-black text-charcoal">Accepting New Bookings</h3>
+                      <p className="text-xs text-muted-foreground font-medium">Turn off to temporarily hide the booking form on your tour page.</p>
+                    </div>
+                    <button 
+                      onClick={handleToggleLive}
+                      disabled={isTogglingLive}
+                      className={cn(
+                        "w-14 h-8 rounded-full p-1 cursor-pointer transition-colors duration-200",
+                        isLive ? "bg-emerald-500" : "bg-slate-300",
+                        isTogglingLive && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-6 h-6 bg-white rounded-full shadow-sm transition-all duration-200",
+                        isLive ? "translate-x-6" : "translate-x-0"
+                      )} />
+                    </button>
+                  </div>
+
+                  <hr className="border-slate-50" />
+
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-black text-charcoal uppercase tracking-widest text-slate-400">Standard Working Hours</h3>
+                    <div className="space-y-3">
+                      {Object.entries(workingHours).map(([day, hours]) => (
+                        <div key={day} className={cn("flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl border transition-all gap-3", hours.enabled ? "bg-white border-slate-100 shadow-sm" : "bg-slate-50 border-transparent opacity-60")}>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={hours.enabled}
+                              onChange={(e) => updateDayHours(day, "enabled", e.target.checked)}
+                              className="w-5 h-5 accent-primary-navy rounded-lg cursor-pointer"
+                            />
+                            <span className="text-sm font-black text-charcoal w-24">{day}</span>
+                          </div>
+                          {hours.enabled && (
+                            <div className="flex items-center gap-2 ml-8 sm:ml-0">
+                              <input
+                                type="time"
+                                value={hours.start}
+                                onChange={(e) => updateDayHours(day, "start", e.target.value)}
+                                className="text-xs font-bold text-slate-600 bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 outline-none focus:border-primary-navy transition-colors"
+                              />
+                              <span className="text-slate-300 text-sm">—</span>
+                              <input
+                                type="time"
+                                value={hours.end}
+                                onChange={(e) => updateDayHours(day, "end", e.target.value)}
+                                className="text-xs font-bold text-slate-600 bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 outline-none focus:border-primary-navy transition-colors"
+                              />
+                            </div>
+                          )}
+                          {!hours.enabled && (
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-8 sm:ml-0">Unavailable</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-4">
+                    <Button
+                      onClick={handleSaveAvailability}
+                      disabled={isSavingAvailability}
+                      className="w-full bg-primary-navy text-white h-14 rounded-2xl font-black shadow-xl shadow-primary-navy/10 hover:shadow-2xl transition-all disabled:opacity-60"
+                    >
+                      {isSavingAvailability ? "Saving..." : "Save Availability Settings"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeNav === "settings" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+              <div>
+                <h2 className="text-2xl font-black text-charcoal">Account Settings</h2>
+                <p className="text-sm text-muted-foreground font-medium">Manage your profile and account preferences.</p>
+              </div>
+              <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-12 text-center">
+                <Settings className="w-16 h-16 text-slate-200 mx-auto mb-4" />
+                <h3 className="text-lg font-black text-charcoal">Settings coming soon</h3>
+                <p className="text-sm text-muted-foreground max-w-sm mx-auto mt-2 font-medium">We're building more tools to help you manage your tour business effectively.</p>
+              </div>
+            </div>
+          )}
         </main>
 
         {/* ── Mobile FAB: Share my page ── */}

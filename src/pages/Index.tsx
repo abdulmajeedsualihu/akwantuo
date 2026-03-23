@@ -159,17 +159,20 @@ const Index = () => {
     if (path === "/onboarding/phone") {
       return (
         <OnboardingPhone
-          onComplete={async (phone: string, pData: { displayName: string; location: string } | undefined, isReturning?: boolean) => {
-            setProfileData((prev: any) => ({
-              ...prev,
-              phone,
-              displayName: pData?.displayName || prev.displayName,
-              location: pData?.location || prev.location,
-            }));
+          onComplete={(phone: string, data: any, isReturning?: boolean) => {
+            if (data) {
+              setProfileData((prev: any) => ({ ...prev, ...data }));
+              
+              // If we have category/title data, sync to tourData
+              if (data.category) {
+                setTourData((prev: any) => ({ ...prev, title: data.category }));
+              }
+            }
             // Save phone to localStorage to persist session if page is refreshed
             saveVendorPhone(phone);
             
             if (isReturning) {
+              toast.success("Welcome back! Redirecting to your dashboard...");
               navigate("/dashboard");
             } else {
               navigate("/onboarding/photos");
@@ -308,6 +311,9 @@ const Index = () => {
           displayName={profileData.displayName}
           photo={photosData.mainPhoto}
           slug={landingSlug}
+          userId={profileData.userId}
+          category={tourData.title}
+          location={profileData.location}
           onLogout={() => {
             clearVendorPhone();
             navigate("/");

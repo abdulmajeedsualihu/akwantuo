@@ -3,6 +3,7 @@
 -- INSERT WITH CHECK (bucket_id = 'product-images' AND auth.role() = 'authenticated')
 
 -- We add a policy for anonymous users to upload
+DROP POLICY IF EXISTS "Anyone can upload to product-images" ON storage.objects;
 CREATE POLICY "Anyone can upload to product-images" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'product-images');
 
 -- Ensure anyone can also read (already exists, but better confirm)

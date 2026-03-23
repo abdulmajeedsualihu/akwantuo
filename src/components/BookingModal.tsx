@@ -38,6 +38,12 @@ const BookingModal = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const today = new Date().toISOString().split('T')[0];
+    if (bookingDate < today) {
+      toast.error("You cannot book for a past date. Please select a future date.");
+      return;
+    }
+
     if (!name || !phone) {
       toast.error("Please provide your name and phone number.");
       return;

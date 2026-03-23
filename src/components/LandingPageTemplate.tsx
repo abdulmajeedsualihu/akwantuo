@@ -154,11 +154,12 @@ const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Preferred Date</label>
                   <div className="h-14 bg-slate-50 border border-slate-100 rounded-2xl px-4 flex items-center gap-3 focus-within:border-primary-navy transition-all">
-                    <input 
-                      type="date" 
+                    <input
+                      type="date"
                       className="bg-transparent outline-none w-full text-sm font-bold text-slate-700"
                       value={bookingDate}
                       onChange={(e) => setBookingDate(e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
                     />
                   </div>
                 </div>
@@ -166,7 +167,7 @@ const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Number of People</label>
                   <div className="h-14 bg-slate-50 border border-slate-100 rounded-2xl px-4 flex items-center gap-3 focus-within:border-primary-navy transition-all relative">
-                    <select 
+                    <select
                       className="bg-transparent outline-none w-full text-sm font-bold text-slate-700 appearance-none cursor-pointer z-10 px-0"
                       value={numPeople}
                       onChange={(e) => setNumPeople(e.target.value)}
@@ -179,7 +180,7 @@ const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
                   </div>
                 </div>
 
-                <Button 
+                <Button
                   onClick={() => {
                     if (!bookingDate) {
                       toast.error("Please select a date first.");
@@ -299,7 +300,7 @@ const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
             </div>
             <span className="text-lg font-black text-slate-900 tracking-tight italic">Akwantuo</span>
           </Link>
-          <p className="text-sm font-bold text-slate-400">© 2024 Akwantuo – Explore like a local. All rights reserved.</p>
+          <p className="text-sm font-bold text-slate-400">© {new Date().getFullYear()} Akwantuo – Explore like a local. All rights reserved.</p>
           <div className="flex justify-center gap-6 text-slate-400">
             <Share2 size={20} className="hover:text-primary-navy cursor-pointer transition-colors" />
             <div className="w-5 h-5 bg-slate-400 rounded-sm"></div>
@@ -308,7 +309,7 @@ const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
         </div>
       </footer>
 
-      <BookingModal 
+      <BookingModal
         isOpen={isBookingModalOpen}
         onClose={() => setIsBookingModalOpen(false)}
         guideId={profile?.user_id || storefront.user_id}

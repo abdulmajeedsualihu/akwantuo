@@ -114,7 +114,9 @@ const VendorDashboard = ({ displayName, photo, slug, onLogout, onViewPage }: Ven
   const [bookings, setBookings] = useState<any[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(true);
 
+  console.log("VendorDashboard props:", { displayName, slug });
   const publicUrl = buildLandingUrl({ slug, displayName });
+  console.log("Calculated publicUrl:", publicUrl);
 
   useEffect(() => {
     if (user?.id) {
@@ -158,6 +160,10 @@ const VendorDashboard = ({ displayName, photo, slug, onLogout, onViewPage }: Ven
   };
 
   const handleCopyLink = () => {
+    if (!publicUrl || publicUrl.endsWith("/tour")) {
+      toast.error("Profile URL not ready. Please try refreshing or re-saving your profile.");
+      return;
+    }
     const copyText = `Check out my tour page: ${publicUrl}`;
     navigator.clipboard.writeText(copyText);
     toast.success("Link & message copied!");

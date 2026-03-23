@@ -167,7 +167,7 @@ const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Number of People</label>
                   <div className="h-14 bg-slate-50 border border-slate-100 rounded-2xl px-4 flex items-center gap-3 focus-within:border-primary-navy transition-all relative">
                     <select 
-                      className="bg-transparent outline-none w-full text-sm font-bold text-slate-700 appearance-none cursor-pointer z-10"
+                      className="bg-transparent outline-none w-full text-sm font-bold text-slate-700 appearance-none cursor-pointer z-10 px-0"
                       value={numPeople}
                       onChange={(e) => setNumPeople(e.target.value)}
                     >
@@ -175,7 +175,7 @@ const LandingPageTemplate = ({ record }: LandingPageTemplateProps) => {
                       <option>3-5 People</option>
                       <option>6+ People</option>
                     </select>
-                    <ChevronRight size={16} className="text-slate-400 transform rotate-90 absolute right-4" />
+                    <ChevronRight size={16} className="text-slate-400 transform rotate-90 absolute right-4 pointer-events-none" />
                   </div>
                 </div>
 

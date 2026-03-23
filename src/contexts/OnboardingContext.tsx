@@ -128,7 +128,9 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     setIsPublishing(true);
     try {
+      console.log("Publishing tour site with:", { effectiveUser, profileData, tourData });
       const record = await saveOnboardingData(effectiveUser, profileData, tourData, photosData);
+      console.log("Publishing success - record returned:", record);
       setLandingSlug(record.slug);
       return true;
     } catch (error: any) {

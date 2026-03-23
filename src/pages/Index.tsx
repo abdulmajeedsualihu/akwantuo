@@ -127,7 +127,18 @@ const Index = () => {
     }
 
     if (path === "/" || path === "/home") {
-      return <HeroLanding onGetStarted={() => navigate("/onboarding/role")} latestTours={latestTours} />;
+      return (
+        <HeroLanding 
+          onGetStarted={(persona: "tourist" | "guide") => {
+            if (persona === "tourist") {
+              navigate("/onboarding/tourist-preferences");
+            } else {
+              navigate("/onboarding/phone");
+            }
+          }} 
+          latestTours={latestTours} 
+        />
+      );
     }
 
     if (path === "/onboarding/role") {
@@ -277,6 +288,7 @@ const Index = () => {
           slug={landingSlug}
           description={tourData.description}
           onDone={() => {
+            console.log("Onboarding Success - Done clicked. Current context:", { profileData, landingSlug });
             saveVendorPhone(profileData.phone);
             navigate("/dashboard");
           }}

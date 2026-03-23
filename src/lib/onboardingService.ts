@@ -186,7 +186,7 @@ export const saveOnboardingData = async (
     .from("profiles")
     .upsert(
       {
-        user_id: user.id,
+        user_id: userId,
         display_name: profileData.displayName,
         location: profileData.location,
         phone: profileData.phone,

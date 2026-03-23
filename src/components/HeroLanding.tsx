@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ArrowRight, Sparkles, Zap, Globe, Camera, Share2, MapPin, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -7,7 +7,7 @@ import { LandingPageRecord } from "@/lib/onboardingService";
 import { Link } from "react-router-dom";
 
 interface HeroLandingProps {
-  onGetStarted: () => void;
+  onGetStarted: (persona: "tourist" | "guide") => void;
   latestTours?: LandingPageRecord[];
 }
 
@@ -32,8 +32,60 @@ const HERO_IMAGES = [
   }
 ];
 
+const PERSONA_CONTENT = {
+  tourist: {
+    badgeIcon: Globe,
+    badgeText: "Ghana's Premier Guide Marketplace",
+    badgeColor: "emerald",
+    headlineMain: "Discover ",
+    headlineHighlight: "Ghana",
+    headlineSuffix: ", Guided by Passion.",
+    subtext: "Find the perfect local guide in seconds with AI matchmaking, or explore curated tours across the country.",
+    cta1: "Try AI MatchMaker",
+    cta2: "Explore Tours",
+    showcaseBadge: "Smart Matching",
+    showcaseH2: "Your Travel DNA,",
+    showcaseH2Highlight: "Perfectly Matched.",
+    showcaseP: "Stop scrolling through endless lists. Our AI analyzes your interests, vibe, and budget to connect you with the one local guide who \"gets\" you.",
+    showcaseList: [
+      "Personalized based on your unique vibe",
+      "Strict budget filtering for every traveler",
+      "Direct connection via WhatsApp",
+      "Only verified, high-quality local guides"
+    ],
+    showcaseButton: "Try the Matchmaker"
+  },
+  guide: {
+    badgeIcon: Zap,
+    badgeText: "Built for Professional Tour Guides",
+    badgeColor: "amber",
+    headlineMain: "Own Your ",
+    headlineHighlight: "Booking, ",
+    headlineSuffix: "Grow Your Brand",
+    subtext: "List your tours, manage bookings, and reach travelers from around the world with our professional vendor tools.",
+    cta1: "Launch Your Tour",
+    cta2: "Explore Tours",
+    showcaseBadge: "Business Growth",
+    showcaseH2: "Your Tour Business,",
+    showcaseH2Highlight: "Supercharged.",
+    showcaseP: "Forget complicated websites. Akwantuo's AI builds your professional tour page in 60 seconds so you can focus on what you do best: guiding.",
+    showcaseList: [
+      "Instant, high-converting tour pages",
+      "Direct bookings without hidden fees",
+      "Integrated WhatsApp communication",
+      "Professional analytics for your business"
+    ],
+    showcaseButton: "Launch Your Page"
+  }
+};
+
 const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [persona, setPersona] = useState<"tourist" | "guide">("tourist");
+  const latestExperiencesRef = useRef<HTMLElement>(null);
+
+  const content = PERSONA_CONTENT[persona];
+  const BadgeIcon = content.badgeIcon;
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -56,22 +108,62 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
             <span className="font-bold text-charcoal tracking-tight text-xl">Akwantuo</span>
           </div>
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              onClick={onGetStarted}
-              className="hidden sm:flex font-bold text-charcoal hover:bg-slate-50 rounded-xl"
-            >
-              Try AI MatchMaker
-            </Button>
-            <Button
-              onClick={onGetStarted}
-              className="bg-primary-navy hover:bg-primary-navy/90 text-white font-bold rounded-xl px-6 shadow-md"
-            >
-              Launch Your Tour
-            </Button>
+            {persona === "tourist" ? (
+              <Button
+                variant="ghost"
+                onClick={() => onGetStarted(persona)}
+                className="hidden sm:flex font-bold text-charcoal hover:bg-slate-50 rounded-xl"
+              >
+                Try AI MatchMaker
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  onClick={() => onGetStarted(persona)}
+                  className="hidden sm:flex font-bold text-charcoal hover:bg-slate-50 rounded-xl"
+                >
+                  Vendor Dashboard
+                </Button>
+                <Button
+                  onClick={() => onGetStarted(persona)}
+                  className="bg-primary-navy hover:bg-primary-navy/90 text-white font-bold rounded-xl px-6 shadow-md"
+                >
+                  Start Guiding
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>
+
+      {/* Persona Switcher - Centered below header */}
+      <div className="w-full bg-slate-50/50 border-b border-slate-100 py-4 flex justify-center sticky top-[73px] z-40 backdrop-blur-md">
+        <div className="bg-slate-200/50 p-1.5 rounded-2xl flex items-center gap-1 border border-slate-100">
+          <button
+            onClick={() => setPersona("tourist")}
+            className={cn(
+              "px-8 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest transition-all",
+              persona === "tourist"
+                ? "bg-white text-primary-navy shadow-sm scale-100"
+                : "text-slate-500 hover:text-slate-900 scale-95 opacity-70"
+            )}
+          >
+            Tourist
+          </button>
+          <button
+            onClick={() => setPersona("guide")}
+            className={cn(
+              "px-8 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest transition-all",
+              persona === "guide"
+                ? "bg-white text-primary-navy shadow-sm scale-100"
+                : "text-slate-500 hover:text-slate-900 scale-95 opacity-70"
+            )}
+          >
+            Tour Guide
+          </button>
+        </div>
+      </div>
 
       <main className="flex-1">
         {/* Premium Hero Section */}
@@ -83,36 +175,51 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
             <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
               {/* Text Content */}
               <div className="flex-1 space-y-8 text-center lg:text-left animate-in fade-in slide-in-from-bottom-8 duration-1000">
-                <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-full px-4 py-1.5 transform hover:scale-105 transition-transform cursor-default mx-auto lg:mx-0">
-                  <Globe className="w-4 h-4 text-emerald-600 animate-spin-slow" />
-                  <span className="text-xs font-black text-emerald-700 uppercase tracking-widest text-[10px]">Ghana's Premier Guide Marketplace</span>
+                <div className={cn(
+                  "inline-flex items-center gap-2 border rounded-full px-4 py-1.5 transform hover:scale-105 transition-transform cursor-default mx-auto lg:mx-0",
+                  content.badgeColor === "emerald" ? "bg-emerald-50 border-emerald-100" : "bg-amber-50 border-amber-100"
+                )}>
+                  <BadgeIcon className={cn("w-4 h-4 animate-spin-slow", content.badgeColor === "emerald" ? "text-emerald-600" : "text-amber-600")} />
+                  <span className={cn("text-xs font-black uppercase tracking-widest text-[10px]", content.badgeColor === "emerald" ? "text-emerald-700" : "text-amber-700")}>
+                    {content.badgeText}
+                  </span>
                 </div>
 
                 <div className="space-y-6">
                   <h1 className="text-5xl sm:text-7xl xl:text-8xl font-black tracking-tight leading-[0.95] text-charcoal">
-                    Discover <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary-navy to-blue-600">Ghana</span>, Guided by Passion.
+                    {content.headlineMain}
+                    <span className={cn(
+                      "bg-clip-text text-transparent bg-gradient-to-r",
+                      persona === "tourist" ? "from-primary-navy to-blue-600" : "from-amber-600 to-orange-500"
+                    )}>
+                      {content.headlineHighlight}
+                    </span>
+                    {content.headlineSuffix}
                   </h1>
                   <p className="text-xl sm:text-2xl text-muted-foreground font-medium leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                    Find the perfect local guide in seconds with AI matchmaking, or launch your professional tour business instantly.
+                    {content.subtext}
                   </p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-5 justify-center lg:justify-start pt-4">
                   <Button
-                    onClick={onGetStarted}
-                    size="lg"
-                    className="h-20 px-10 text-xl font-black bg-primary-navy hover:bg-primary-navy/90 text-white rounded-[2rem] shadow-2xl shadow-primary-navy/20 group transform transition-all hover:-translate-y-1 active:scale-95"
+                    onClick={() => onGetStarted(persona)}
+                    className={cn(
+                      "h-16 px-10 rounded-2xl text-white font-black hover:opacity-90 transition-all shadow-md text-lg flex items-center justify-center gap-3 active:scale-95 group",
+                      persona === "tourist" ? "bg-primary-navy" : "bg-charcoal"
+                    )}
                   >
-                    Find a Guide
-                    <ArrowRight className="w-6 h-6 ml-2 group-hover:translate-x-2 transition-transform" />
+                    {content.cta1}
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                   <Button
-                    onClick={onGetStarted}
+                    onClick={() => {
+                      latestExperiencesRef.current?.scrollIntoView({ behavior: "smooth" });
+                    }}
                     variant="outline"
-                    size="lg"
-                    className="h-20 px-10 text-xl font-black border-2 border-slate-100 rounded-[2rem] bg-white/50 backdrop-blur-sm hover:bg-white transition-all hover:-translate-y-1 active:scale-95"
+                    className="h-16 px-10 rounded-2xl border-2 border-slate-200 text-charcoal font-black hover:bg-slate-50 transition-all text-lg active:scale-95"
                   >
-                    Host a Tour
+                    {content.cta2}
                   </Button>
                 </div>
               </div>
@@ -201,25 +308,20 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
               <div className="flex-1 space-y-8 animate-in fade-in slide-in-from-left-8 duration-1000">
                 <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-full px-4 py-1.5 transition-transform cursor-default">
                   <Sparkles className="w-4 h-4 text-blue-600" />
-                  <span className="text-xs font-black text-blue-700 uppercase tracking-widest text-[10px]">Smart Matching</span>
+                  <span className="text-xs font-black text-blue-700 uppercase tracking-widest text-[10px]">{content.showcaseBadge}</span>
                 </div>
 
                 <h2 className="text-4xl sm:text-6xl font-black text-charcoal tracking-tight leading-[1.1]">
-                  Your Travel DNA,<br />
-                  <span className="text-blue-600">Perfectly Matched.</span>
+                  {content.showcaseH2}<br />
+                  <span className="text-blue-600">{content.showcaseH2Highlight}</span>
                 </h2>
 
                 <p className="text-lg text-muted-foreground font-medium leading-relaxed max-w-xl">
-                  Stop scrolling through endless lists. Our AI analyzes your interests, vibe, and budget to connect you with the one local guide who "gets" you.
+                  {content.showcaseP}
                 </p>
 
                 <ul className="space-y-4">
-                  {[
-                    "Personalized based on your unique vibe",
-                    "Strict budget filtering for every traveler",
-                    "Direct connection via WhatsApp",
-                    "Only verified, high-quality local guides"
-                  ].map((item, i) => (
+                  {content.showcaseList.map((item, i) => (
                     <li key={i} className="flex items-center gap-3 text-charcoal font-bold">
                       <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
                         <CheckCircle2 size={14} className="text-emerald-600" />
@@ -230,10 +332,10 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
                 </ul>
 
                 <Button
-                  onClick={onGetStarted}
-                  className="h-16 px-10 rounded-2xl bg-charcoal text-white font-black hover:bg-charcoal/90 transition-all shadow-lg text-lg"
+                  onClick={() => onGetStarted(persona)}
+                  className="h-16 px-10 rounded-2xl bg-charcoal text-white font-black hover:bg-charcoal/90 transition-all shadow-md text-lg"
                 >
-                  Try the Matchmaker
+                  {content.showcaseButton}
                 </Button>
               </div>
 
@@ -258,16 +360,18 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
 
         {/* Latest Experiences Section */}
         {latestTours && latestTours.length > 0 && (
-          <section className="py-24 bg-white border-t border-slate-50">
+          <section ref={latestExperiencesRef} className="py-24 bg-white border-t border-slate-50">
             <div className="max-w-7xl mx-auto px-6 lg:px-10">
               <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
                 <div className="max-w-2xl space-y-4 text-center md:text-left">
                   <h2 className="text-4xl sm:text-5xl font-black text-charcoal tracking-tight">Latest Experiences</h2>
                   <p className="text-lg text-muted-foreground font-medium italic">Discover unique adventures hosted by our top local guides.</p>
                 </div>
-                <Button variant="outline" className="hidden md:flex rounded-xl font-bold border-slate-200 h-12 px-6" onClick={onGetStarted}>
-                  Host Your Own
-                </Button>
+                {persona === "guide" && (
+                  <Button variant="outline" className="hidden md:flex rounded-xl font-bold border-slate-200 h-12 px-6" onClick={() => onGetStarted(persona)}>
+                    Professionalize Your Tours
+                  </Button>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
@@ -317,11 +421,13 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
                 ))}
               </div>
 
-              <div className="mt-16 text-center md:hidden">
-                <Button className="w-full h-16 rounded-2xl font-black bg-primary-navy text-white shadow-xl" onClick={onGetStarted}>
-                  Host Your Own Experience
-                </Button>
-              </div>
+              {persona === "guide" && (
+                <div className="mt-16 text-center md:hidden">
+                  <Button className="w-full h-16 rounded-2xl font-black bg-primary-navy text-white shadow-xl" onClick={() => onGetStarted(persona)}>
+                    Host Your Own Experience
+                  </Button>
+                </div>
+              )}
             </div>
           </section>
         )}
@@ -340,21 +446,27 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
 
               {[
                 {
-                  icon: <Sparkles className="w-8 h-8 text-blue-600" />,
-                  title: "1. Match Your DNA",
-                  desc: "Tourists: Use our AI to find a guide who matches your vibe, interests, and budget instantly.",
+                  icon: <Sparkles className={cn("w-8 h-8", persona === "tourist" ? "text-blue-600" : "text-primary-navy")} />,
+                  title: persona === "tourist" ? "1. Match Your DNA" : "1. Join the Marketplace",
+                  desc: persona === "tourist"
+                    ? "Use our AI to find a guide who matches your vibe, interests, and budget instantly."
+                    : "Create your profile in seconds and join Ghana's professional network of local experts.",
                   color: "bg-white"
                 },
                 {
                   icon: <Zap className="w-8 h-8 text-amber-600" />,
-                  title: "2. AI-Powered Setup",
-                  desc: "Guides: Snap a few photos and let our AI build your professional tour site in under 60 seconds.",
+                  title: persona === "tourist" ? "2. Local Discovery" : "2. AI-Powered Setup",
+                  desc: persona === "tourist"
+                    ? "Explore curated experiences and find hidden gems only locals know about."
+                    : "Snap a few photos and let our AI build your high-converting tour page automatically.",
                   color: "bg-white"
                 },
                 {
                   icon: <Share2 className="w-8 h-8 text-emerald-600" />,
-                  title: "3. Direct Adventure",
-                  desc: "Connect instantly via WhatsApp. No middlemen, no hidden fees—just pure Ghanaian adventure.",
+                  title: persona === "tourist" ? "3. Direct Adventure" : "3. Direct Bookings",
+                  desc: persona === "tourist"
+                    ? "Connect instantly via WhatsApp. No middlemen or hidden fees—just pure Ghanaian adventure."
+                    : "Receive inquiries and manage bookings directly via WhatsApp with zero commission fees.",
                   color: "bg-white"
                 }
               ].map((step, i) => (
@@ -383,17 +495,19 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
               <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-white/5 blur-[100px] rounded-full" />
               <div className="relative z-10 space-y-10">
                 <h2 className="text-4xl sm:text-6xl font-black text-white leading-[1.1] tracking-tight">
-                  Ready to show the world your Ghana?
+                  {persona === "tourist" ? "Ready for your next adventure?" : "Ready to show the world your Ghana?"}
                 </h2>
                 <p className="text-blue-100 text-lg sm:text-xl max-w-2xl mx-auto font-medium opacity-90">
-                  Join 2,000+ local guides already using Akwantuo to professionalize their tourism business. No credit card required.
+                  {persona === "tourist"
+                    ? "Join thousands of travelers discovering the soul of Ghana with the perfect local experts."
+                    : "Join 2,000+ local guides already using Akwantuo to professionalize their tourism business. No credit card required."}
                 </p>
                 <Button
-                  onClick={onGetStarted}
+                  onClick={() => onGetStarted(persona)}
                   size="lg"
                   className="h-16 px-8 text-lg sm:h-20 sm:px-12 sm:text-xl font-black bg-white text-primary-navy hover:bg-white/90 rounded-[2rem] shadow-2xl transform transition-all hover:scale-105 active:scale-95 mx-auto"
                 >
-                  Create Your Tour Page
+                  {persona === "tourist" ? "Find Your Guide" : "Launch Your Tour"}
                 </Button>
               </div>
             </div>

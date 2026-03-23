@@ -21,6 +21,7 @@ export default {
         foreground: "hsl(var(--foreground))",
         "primary-navy": "hsl(var(--akwantuo-navy))",
         "accent-gray": "hsl(var(--akwantuo-gray))",
+        charcoal: "hsl(var(--charcoal))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",

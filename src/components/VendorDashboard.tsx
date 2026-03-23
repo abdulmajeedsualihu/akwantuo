@@ -107,9 +107,15 @@ const VendorDashboard = ({ displayName, photo, slug, onLogout, onViewPage }: Ven
   const [activeNav, setActiveNav] = useState<NavItem>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  console.log("VendorDashboard props:", { displayName, slug });
   const publicUrl = buildLandingUrl({ slug, displayName });
+  console.log("Calculated publicUrl:", publicUrl);
 
   const handleCopyLink = () => {
+    if (!publicUrl || publicUrl.endsWith("/tour")) {
+      toast.error("Profile URL not ready. Please try refreshing or re-saving your profile.");
+      return;
+    }
     const copyText = `Check out my tour page: ${publicUrl}`;
     navigator.clipboard.writeText(copyText);
     toast.success("Link & message copied!");

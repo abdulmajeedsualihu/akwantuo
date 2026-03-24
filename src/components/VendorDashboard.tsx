@@ -222,8 +222,8 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
       toast.error("Profile URL not ready. Please try refreshing or re-saving your profile.");
       return;
     }
-    const copyText = `Check out my tour page: ${publicUrl}`;
-    navigator.clipboard.writeText(copyText);
+    // const copyText = publicUrl;
+    navigator.clipboard.writeText(publicUrl);
     toast.success("Link & message copied!");
   };
 
@@ -239,7 +239,7 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
           <AkwantuoLogo variant="circle" size="sm" />
           <span className="font-bold text-charcoal tracking-tight text-lg group-hover:text-primary-navy transition-colors">Akwantuo</span>
         </Link>
-        
+
         <div className="flex flex-col items-center gap-3 w-full">
           {/* Avatar */}
           <div className="w-16 h-16 rounded-full bg-primary-navy/10 flex items-center justify-center overflow-hidden border-4 border-white shadow-xl">
@@ -268,12 +268,12 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
         {BOTTOM_NAV.map((item) => (
           <button
             key={item.id}
-            onClick={() => { 
+            onClick={() => {
               if (item.href) {
                 navigate(item.href);
               } else {
-                setActiveNav(item.id); 
-                setSidebarOpen(false); 
+                setActiveNav(item.id);
+                setSidebarOpen(false);
               }
             }}
             className={cn(
@@ -474,16 +474,16 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
                         </div>
                         {b.status === "pending" && (
                           <div className="grid grid-cols-2 gap-2 mt-2">
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
+                            <Button
+                              size="sm"
+                              variant="outline"
                               onClick={() => handleUpdateStatus(b.id, "cancelled")}
                               className="rounded-xl font-bold h-8 text-[11px] border-red-100 text-red-500"
                             >
                               Decline
                             </Button>
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               onClick={() => handleUpdateStatus(b.id, "confirmed")}
                               className="rounded-xl font-bold h-8 text-[11px] bg-emerald-500 hover:bg-emerald-600 text-white"
                             >
@@ -596,24 +596,24 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center justify-between lg:justify-end gap-3 border-t lg:border-t-0 pt-4 lg:pt-0 border-slate-50">
                             <span className={cn("text-[11px] font-black px-3 py-1.5 rounded-full uppercase tracking-wider", STATUS_STYLES[b.status] || "bg-slate-100")}>
                               {b.status}
                             </span>
-                            
+
                             {b.status === "pending" && (
                               <div className="flex gap-2">
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
+                                <Button
+                                  size="sm"
+                                  variant="outline"
                                   onClick={() => handleUpdateStatus(b.id, "cancelled")}
                                   className="rounded-xl font-black h-10 px-4 text-red-500 hover:bg-red-50 border-red-50"
                                 >
                                   Decline
                                 </Button>
-                                <Button 
-                                  size="sm" 
+                                <Button
+                                  size="sm"
                                   onClick={() => handleUpdateStatus(b.id, "confirmed")}
                                   className="rounded-xl font-black h-10 px-6 bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-100"
                                 >
@@ -621,7 +621,7 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
                                 </Button>
                               </div>
                             )}
-                            
+
                             {b.status === "confirmed" && (
                               <button className="flex items-center gap-2 text-primary-navy font-black text-xs hover:underline">
                                 <ExternalLink size={14} /> Contact Tourist
@@ -651,7 +651,7 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
                       <h3 className="text-lg font-black text-charcoal">Accepting New Bookings</h3>
                       <p className="text-xs text-muted-foreground font-medium">Turn off to temporarily hide the booking form on your tour page.</p>
                     </div>
-                    <button 
+                    <button
                       onClick={handleToggleLive}
                       disabled={isTogglingLive}
                       className={cn(

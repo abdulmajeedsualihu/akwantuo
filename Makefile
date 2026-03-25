@@ -55,7 +55,7 @@ supabase-status:
 
 # Replace <PROJECT_REF> with your actual Supabase project reference
 supabase-link:
-	npx supabase link --project-ref sdolvhiyxbtqmviusqzl --debug
+	npx supabase link --project-ref  --debug
 
 supabase-push:
 	npx supabase db push --include-all

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowRight, Sparkles, Zap, Globe, Camera, Share2, MapPin, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Sparkles, Zap, Globe, Camera, Share2, MapPin, ChevronLeft, ChevronRight, CheckCircle2, CalendarDays, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import AkwantuoLogo from "./AkwantuoLogo";
@@ -40,18 +40,18 @@ const PERSONA_CONTENT = {
     headlineMain: "Discover ",
     headlineHighlight: "Ghana",
     headlineSuffix: ", Guided by Passion.",
-    subtext: "Find the perfect local guide in seconds with AI matchmaking, or explore curated tours across the country.",
+    subtext: "Find your perfect guide and get an instant AI-powered 3-day itinerary tailored to your vibe and budget.",
     cta1: "Try AI MatchMaker",
     cta2: "Explore Tours",
     showcaseBadge: "Smart Matching",
     showcaseH2: "Your Travel DNA,",
     showcaseH2Highlight: "Perfectly Matched.",
-    showcaseP: "Stop scrolling through endless lists. Our AI analyzes your interests, vibe, and budget to connect you with the one local guide who \"gets\" you.",
+    showcaseP: "Stop scrolling through endless lists. Our AI analyzes your interests, vibe, and budget to connect you with the one local guide who \"gets\" you—and builds your trip plan in seconds.",
     showcaseList: [
+      "Instant 3-day AI trip itineraries",
       "Personalized based on your unique vibe",
-      "Strict budget filtering for every traveler",
-      "Direct connection via WhatsApp",
-      "Only verified, high-quality local guides"
+      "Matched with verified local experts",
+      "Direct connection via WhatsApp"
     ],
     showcaseButton: "Try the Matchmaker"
   },
@@ -301,62 +301,86 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
           </div>
         </section>
 
-        {/* AI Matchmaking Showcase */}
-        <section className="py-24 bg-white overflow-hidden">
-          <div className="max-w-7xl mx-auto px-6 lg:px-10">
-            <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
-              <div className="flex-1 space-y-8 animate-in fade-in slide-in-from-left-8 duration-1000">
-                <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-full px-4 py-1.5 transition-transform cursor-default">
-                  <Sparkles className="w-4 h-4 text-blue-600" />
-                  <span className="text-xs font-black text-blue-700 uppercase tracking-widest text-[10px]">{content.showcaseBadge}</span>
+        {/* AI Trip Planning Showcase - NEW SECTION */}
+        {persona === "tourist" && (
+          <section className="py-24 bg-slate-50 overflow-hidden border-y border-slate-100">
+            <div className="max-w-7xl mx-auto px-6 lg:px-10">
+              <div className="flex flex-col lg:flex-row-reverse items-center gap-16 lg:gap-24">
+                <div className="flex-1 space-y-8">
+                  <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-full px-4 py-1.5">
+                    <CalendarDays className="w-4 h-4 text-emerald-600" />
+                    <span className="text-xs font-black text-emerald-700 uppercase tracking-widest text-[10px]">Instant Itineraries</span>
+                  </div>
+
+                  <h2 className="text-4xl sm:text-6xl font-black text-charcoal tracking-tight leading-[1.1]">
+                    Plan Your Trip,<br />
+                    <span className="text-emerald-600">Like a Local.</span>
+                  </h2>
+
+                  <p className="text-lg text-muted-foreground font-medium leading-relaxed max-w-xl">
+                    Don't just visit—experience. Our AI collaborates with your matched guide to craft a day-by-day itinerary that balances iconic landmarks with hidden local gems.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {[
+                      { icon: <Zap size={18} />, title: "Instant Generation", text: "Ready in under 10 seconds" },
+                      { icon: <MapPin size={18} />, title: "Hyper-Local", text: "Curated by real experts" },
+                      { icon: <CalendarDays size={18} />, title: "3-Day Mastery", text: "Morning to evening plans" },
+                      { icon: <Rocket size={18} />, title: "Personalised", text: "Matches your budget & vibe" },
+                    ].map((feat, i) => (
+                      <div key={i} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                        <div className="text-emerald-600 mb-2">{feat.icon}</div>
+                        <p className="font-bold text-charcoal text-sm">{feat.title}</p>
+                        <p className="text-xs text-muted-foreground font-medium">{feat.text}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Button
+                    onClick={() => onGetStarted(persona)}
+                    className="h-16 px-10 rounded-2xl bg-emerald-600 text-white font-black hover:bg-emerald-700 transition-all shadow-md text-lg"
+                  >
+                    Generate Your Plan
+                  </Button>
                 </div>
 
-                <h2 className="text-4xl sm:text-6xl font-black text-charcoal tracking-tight leading-[1.1]">
-                  {content.showcaseH2}<br />
-                  <span className="text-blue-600">{content.showcaseH2Highlight}</span>
-                </h2>
+                <div className="flex-1 relative w-full max-w-lg">
+                  {/* Decorative background for the card */}
+                  <div className="absolute -inset-4 bg-gradient-to-tr from-emerald-100 to-emerald-50/20 blur-3xl rounded-[4rem] opacity-50" />
+                  
+                  {/* Mock Itinerary Card Interface */}
+                  <div className="relative z-10 bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden transform lg:-rotate-2 hover:rotate-0 transition-transform duration-700">
+                    <div className="h-40 bg-gradient-to-br from-[#006B3F] via-[#FCD116] to-[#CE1126] p-8">
+                       <div className="bg-white/20 backdrop-blur-md rounded-full px-3 py-1 w-fit text-[8px] font-black text-white uppercase tracking-widest mb-2">AI-CRAFTED</div>
+                       <h3 className="text-xl font-black text-white">3-Day Accra Adventure</h3>
+                    </div>
+                    <div className="p-6 space-y-4 bg-slate-50/50">
+                       {[1, 2, 3].map(d => (
+                         <div key={d} className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center">D{d}</div>
+                            <div className="flex-1">
+                               <p className="text-[10px] font-bold text-charcoal line-clamp-1">{d === 1 ? 'Arrival & First Tastes' : d === 2 ? 'Cultural Deep Dive' : 'Beachside Relaxation'}</p>
+                               <div className="flex gap-1 mt-1 opacity-50">
+                                  <div className="w-2 h-2 rounded-full bg-slate-300" />
+                                  <div className="w-2 h-2 rounded-full bg-slate-300" />
+                                  <div className="w-2 h-2 rounded-full bg-slate-300" />
+                               </div>
+                            </div>
+                         </div>
+                       ))}
+                    </div>
+                  </div>
 
-                <p className="text-lg text-muted-foreground font-medium leading-relaxed max-w-xl">
-                  {content.showcaseP}
-                </p>
-
-                <ul className="space-y-4">
-                  {content.showcaseList.map((item, i) => (
-                    <li key={i} className="flex items-center gap-3 text-charcoal font-bold">
-                      <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                        <CheckCircle2 size={14} className="text-emerald-600" />
-                      </div>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-
-                <Button
-                  onClick={() => onGetStarted(persona)}
-                  className="h-16 px-10 rounded-2xl bg-charcoal text-white font-black hover:bg-charcoal/90 transition-all shadow-md text-lg"
-                >
-                  {content.showcaseButton}
-                </Button>
-              </div>
-
-              <div className="flex-1 relative aspect-square group">
-                <div className="absolute inset-0 bg-blue-600/5 rounded-[3rem] -rotate-3 transition-transform group-hover:rotate-0 duration-700" />
-                <div className="relative z-10 w-full h-full rounded-[3rem] overflow-hidden border-[12px] border-white shadow-2xl">
-                  <img
-                    src="/matchmaking_promo.png"
-                    alt="AI Matchmaking Preview"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent flex items-end p-10">
-                    <p className="text-white text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                      Visualizing the Akwantuo Matchmaker flow...
-                    </p>
+                  {/* Floating Indicator */}
+                  <div className="absolute -bottom-6 -right-6 bg-charcoal text-white px-6 py-4 rounded-2xl shadow-2xl z-20 animate-bounce">
+                     <p className="text-[10px] font-black uppercase tracking-widest mb-1">Guide Recommendation</p>
+                     <p className="text-xs font-medium">"Try the Banku at Osu!" 🍲</p>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* Latest Experiences Section */}
         {latestTours && latestTours.length > 0 && (

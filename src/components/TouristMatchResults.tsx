@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, Star, MapPin, CheckCircle2, MessageCircle, ArrowRight, Loader2, Sparkles } from "lucide-react";
+import { ChevronLeft, Star, MapPin, CheckCircle2, MessageCircle, Loader2, Sparkles, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import ItineraryCard from "@/components/ItineraryCard";
 
 interface GuideMatch {
   id: string;
@@ -26,6 +27,55 @@ interface TouristMatchResultsProps {
 const TouristMatchResults = ({ preferences, onBack, onSelectGuide }: TouristMatchResultsProps) => {
   const [loading, setLoading] = useState(true);
   const [matches, setMatches] = useState<GuideMatch[]>([]);
+  const [itinerary, setItinerary] = useState<any>(null);
+  const [itineraryLoading, setItineraryLoading] = useState(false);
+  const [itineraryGuideId, setItineraryGuideId] = useState<string | null>(null);
+
+  const generateItinerary = async (guide: GuideMatch) => {
+    // If clicking the one already generated, just scroll to it
+    if (itinerary && itineraryGuideId === guide.id) {
+      document.getElementById("itinerary-section")?.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
+
+    const cacheKey = `akwantuo_itinerary_${guide.id}_${JSON.stringify(
+      Object.fromEntries(Object.entries(preferences || {}).sort())
+    )}`;
+
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      try { 
+        const parsed = JSON.parse(cached);
+        setItinerary(parsed);
+        setItineraryGuideId(guide.id);
+        setTimeout(() => document.getElementById("itinerary-section")?.scrollIntoView({ behavior: "smooth" }), 100);
+        return; 
+      } catch (_) {}
+    }
+
+    setItineraryLoading(true);
+    setItineraryGuideId(guide.id); // Track which one we are loading
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-itinerary", {
+        body: { preferences: { ...preferences, days: 3 }, guide },
+      });
+      if (error) throw error;
+      const result = data?.itinerary ?? null;
+      if (result) {
+        setItinerary(result);
+        setItineraryGuideId(guide.id);
+        sessionStorage.setItem(cacheKey, JSON.stringify(result));
+        // Smooth scroll to itinerary
+        setTimeout(() => document.getElementById("itinerary-section")?.scrollIntoView({ behavior: "smooth" }), 100);
+      }
+    } catch (err) {
+      console.error("Itinerary Error:", err);
+      toast.error("Could not generate itinerary. Please try again.");
+      setItineraryGuideId(null);
+    } finally {
+      setItineraryLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!preferences) {
@@ -200,9 +250,36 @@ const TouristMatchResults = ({ preferences, onBack, onSelectGuide }: TouristMatc
                       </Button>
                     )}
                   </div>
+
+                  {/* Itinerary CTA */}
+                  <Button
+                    onClick={() => generateItinerary(guide)}
+                    disabled={itineraryLoading && itineraryGuideId !== guide.id}
+                    className={cn(
+                      "w-full mt-3 h-12 rounded-xl font-bold text-sm shadow-sm transition-all",
+                      itinerary && itineraryGuideId === guide.id
+                        ? "bg-emerald-600 hover:bg-emerald-700"
+                        : "bg-amber-500 hover:bg-amber-600"
+                    )}
+                  >
+                    {itineraryLoading && itineraryGuideId === guide.id ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Building your itinerary...</>
+                    ) : itinerary && itineraryGuideId === guide.id ? (
+                      <><CalendarDays className="w-4 h-4 mr-2" /> View My Itinerary ↓</>
+                    ) : (
+                      <><CalendarDays className="w-4 h-4 mr-2" /> ✨ Generate My Itinerary</>
+                    )}
+                  </Button>
                 </div>
               ))}
             </div>
+
+            {/* Itinerary Section */}
+            {itinerary && (
+              <div id="itinerary-section">
+                <ItineraryCard itinerary={itinerary} guideName={matches.find(m => m.id === itineraryGuideId)?.name ?? "Your Guide"} />
+              </div>
+            )}
 
             <Button 
               variant="ghost" 

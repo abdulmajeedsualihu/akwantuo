@@ -64,6 +64,9 @@ supabase-deploy:
 	npx supabase functions deploy analyze-guide-assets --no-verify-jwt
 	npx supabase functions deploy match-guide --no-verify-jwt
 	npx supabase functions deploy generate-itinerary --no-verify-jwt
+	npx supabase functions deploy generate-guide-reply --no-verify-jwt
+	npx supabase functions deploy generate-promo-post --no-verify-jwt
+
 
 supabase-types:
 	npx supabase gen types typescript --local > src/integrations/supabase/types.ts

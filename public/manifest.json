@@ -1,7 +1,7 @@
 {
-  "name": "ShopSnap",
-  "short_name": "ShopSnap",
-  "description": "AI-powered storefront generator for West African vendors.",
+  "name": "Akwantuo",
+  "short_name": "Akwantuo",
+  "description": "AI-powered tour site generator for African tour guides.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FDFCF8",

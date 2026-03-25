@@ -402,3 +402,60 @@ export const getAvailabilitySettings = async (
   }
   return (data?.availability_settings as unknown as AvailabilitySettings) ?? null;
 };
+export const updateStorefrontHighlights = async (userId: string, highlights: string[]) => {
+  // 1. Get current storefront
+  const { data: storefront, error: fetchError } = await supabase
+    .from("storefronts")
+    .select("description")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (fetchError) throw fetchError;
+  
+  const currentPayload = parseDescriptionPayload(storefront?.description || null);
+  const updatedPayload = { ...currentPayload, highlights };
+
+  const { data, error } = await supabase
+    .from("storefronts")
+    .update({ description: JSON.stringify(updatedPayload) })
+    .eq("user_id", userId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating highlights:", error);
+    throw error;
+  }
+  return data;
+};
+
+export const searchStorefronts = async (query: string): Promise<LandingPageRecord[]> => {
+  const { data, error } = await supabase
+    .from("storefronts")
+    .select("*")
+    .or(`business_name.ilike.%${query}%,location.ilike.%${query}%,category.ilike.%${query}%`)
+    .eq("is_live", true)
+    .limit(20);
+
+  if (error) {
+    console.error("Error searching storefronts:", error);
+    return [];
+  }
+
+  const results = await Promise.all((data ?? []).map(async (item) => {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("user_id", item.user_id)
+      .maybeSingle();
+
+    return {
+      storefront: item,
+      profile: profile ?? undefined,
+      descriptionPayload: parseDescriptionPayload(item.description),
+      slug: buildTourSiteSlug(item.business_name, item.user_id),
+    };
+  }));
+
+  return results;
+};

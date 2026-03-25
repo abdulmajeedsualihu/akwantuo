@@ -2,6 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .glass-premium {
+    @apply bg-white/10 backdrop-blur-xl border border-white/20 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)];
+  }
+
+  .shimmer-anim {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.4) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2.5s infinite linear;
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.transition-premium {
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
 @layer base {
   :root {
     --background: 210 40% 98%;
@@ -89,7 +114,6 @@
 
     --emerald-dark: 161 80% 30%;
     --gold: 38 92% 50%;
-    --gold-light: 38 40% 15%;
     --bone: 215 25% 8%;
     --charcoal: 34 20% 94%;
   }

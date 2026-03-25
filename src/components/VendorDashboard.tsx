@@ -3,7 +3,7 @@ import {
   LayoutDashboard, User, CalendarCheck, Settings, LogOut,
   Eye, Ticket, Clock, ExternalLink,
   Menu, Bell, Share2, Calendar, CheckCircle2, Copy, Home,
-  XCircle, Check, MapPin
+  XCircle, Check, MapPin, Sparkles, TrendingUp, MessageSquare, Megaphone, Loader2
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import AkwantuoLogo from "./AkwantuoLogo";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { slugifyDisplayName, buildLandingUrl } from "@/lib/share";
-import { getBookings, updateBookingStatus, toggleStorefrontLive, getStorefrontLiveStatus, saveAvailabilitySettings, getAvailabilitySettings, DEFAULT_WORKING_HOURS, WorkingHours } from "@/lib/onboardingService";
+import { getBookings, updateBookingStatus, toggleStorefrontLive, getStorefrontLiveStatus, saveAvailabilitySettings, getAvailabilitySettings, DEFAULT_WORKING_HOURS, WorkingHours, updateStorefrontHighlights } from "@/lib/onboardingService";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
@@ -104,12 +104,11 @@ const BOTTOM_NAV: { id: NavItem; label: string; icon: React.ReactNode; href?: st
   { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
   { id: "bookings", label: "My Bookings", icon: <CalendarCheck className="w-5 h-5" /> },
   { id: "availability", label: "Availability", icon: <Clock className="w-5 h-5" /> },
-  { id: "mypage", label: "Public Page", icon: <User className="w-5 h-5" /> },
-  { id: "settings", label: "Account", icon: <Settings className="w-5 h-5" /> },
+  { id: "settings", label: "Settings", icon: <Settings className="w-5 h-5" /> },
   { id: "home", label: "Home", icon: <Home className="w-5 h-5" />, href: "/" },
 ];
 
-type NavItem = "dashboard" | "bookings" | "availability" | "mypage" | "settings" | "home";
+type NavItem = "dashboard" | "bookings" | "availability" | "settings" | "home";
 
 const VendorDashboard = ({ displayName, photo, slug, userId, category, location, onLogout, onViewPage }: VendorDashboardProps) => {
   const navigate = useNavigate();
@@ -121,6 +120,9 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
   const [isTogglingLive, setIsTogglingLive] = useState(false);
   const [workingHours, setWorkingHours] = useState<Record<string, WorkingHours>>(DEFAULT_WORKING_HOURS);
   const [isSavingAvailability, setIsSavingAvailability] = useState(false);
+  const [suggestingReplyId, setSuggestingReplyId] = useState<string | null>(null);
+  const [suggestedReplies, setSuggestedReplies] = useState<Record<string, string>>({});
+  const [isGeneratingPromo, setIsGeneratingPromo] = useState(false);
 
   console.log("VendorDashboard props:", { displayName, slug, userId });
   const publicUrl = buildLandingUrl({ slug, displayName });
@@ -132,6 +134,27 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
       loadAvailabilitySettings();
     }
   }, [userId]);
+
+  const handleSuggestReply = async (booking: any) => {
+    setSuggestingReplyId(booking.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-guide-reply", {
+        body: {
+          message: booking.message,
+          guideName: displayName,
+          customerName: booking.customer_name
+        },
+      });
+      if (error) throw error;
+      setSuggestedReplies(prev => ({ ...prev, [booking.id]: data.reply }));
+      toast.success("AI suggested a reply!");
+    } catch (err) {
+      console.error("AI Reply Error:", err);
+      toast.error("Failed to suggest reply.");
+    } finally {
+      setSuggestingReplyId(null);
+    }
+  };
 
   const loadAvailabilitySettings = async () => {
     if (!userId) return;
@@ -191,7 +214,7 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
     }
   };
 
-  const handleUpdateStatus = async (bookingId: string, newStatus: string) => {
+  const handleUpdateBookingStatus = async (bookingId: string, newStatus: string) => {
     try {
       await updateBookingStatus(bookingId, newStatus);
       toast.success(`Booking ${newStatus} successfully!`);
@@ -222,12 +245,38 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
       toast.error("Profile URL not ready. Please try refreshing or re-saving your profile.");
       return;
     }
-    // const copyText = publicUrl;
     navigator.clipboard.writeText(publicUrl);
-    toast.success("Link & message copied!");
+    toast.success("Public Page link copied!");
+  };
+
+  const handleGeneratePromoPost = async () => {
+    setIsGeneratingPromo(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-promo-post", {
+        body: {
+          guideName: displayName || "Local Guide",
+          location: location || "Ghana",
+          category: category || "Tour Guide",
+          description: "An expert local guide passionate about showing the best of Ghana and creating unique experiences."
+        },
+      });
+      if (error) throw error;
+      if (data?.promoPost) {
+        // Append the public URL to the AI generated post
+        const fullPost = `${data.promoPost}\n\nBook here: ${publicUrl}`;
+        navigator.clipboard.writeText(fullPost);
+        toast.success("AI Promo copied for WhatsApp!");
+      }
+    } catch (err) {
+      console.error("Promo Generation Error:", err);
+      toast.error("Failed to generate promo post.");
+    } finally {
+      setIsGeneratingPromo(false);
+    }
   };
 
   const handleShare = () => {
+    if (!publicUrl) return;
     const text = encodeURIComponent(`Check out my tour page: ${publicUrl}`);
     window.open(`https://wa.me/?text=${text}`, "_blank");
   };
@@ -362,9 +411,7 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
             <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
               {/* ── Greeting ── */}
               <div className="hidden lg:block">
-                <h2 className="text-2xl font-black text-charcoal">
-                  Hey, {displayName.toLocaleUpperCase() || "Guide"} 👋
-                </h2>
+                  Hey, {(displayName || "Guide").toLocaleUpperCase()} 👋
                 <p className="text-sm text-muted-foreground font-medium mt-0.5">
                   Manage your <span className="text-primary-navy font-bold">{category || "Tour"}</span> experience in <span className="text-primary-navy font-bold">{location || "Ghana"}</span>.
                 </p>
@@ -417,6 +464,62 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
                 </div>
               </div>
 
+              {/* ── AI Guide Studio: Insights ── */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="glass-premium rounded-3xl p-6 relative overflow-hidden group">
+                  <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary-navy/5 rounded-full blur-3xl group-hover:bg-primary-navy/10 transition-colors" />
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-8 h-8 rounded-xl bg-primary-navy/10 flex items-center justify-center">
+                        <TrendingUp className="w-4 h-4 text-primary-navy" />
+                      </div>
+                      <span className="text-[10px] font-black text-primary-navy uppercase tracking-widest">AI Growth Pulse</span>
+                    </div>
+                    <h4 className="text-lg font-black text-charcoal mb-2">Increase your match rate by 20%</h4>
+                    <p className="text-xs text-muted-foreground font-medium leading-relaxed mb-4">
+                      Tourists are currently searching for <span className="text-primary-navy font-bold">"Night Markets"</span> and <span className="text-primary-navy font-bold">"Street Food"</span> in Accra. Add these to your highlights to get more matches.
+                    </p>
+                     <Button 
+                       variant="outline" 
+                       size="sm" 
+                       className="rounded-xl font-bold bg-white text-[10px] h-8 border-slate-200"
+                       onClick={() => setActiveNav("settings")}
+                     >
+                       Update Highlights
+                     </Button>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-primary-navy to-charcoal rounded-3xl p-6 text-white relative overflow-hidden shadow-xl shadow-primary-navy/10">
+                  <div className="absolute top-0 right-0 p-4 opacity-20">
+                    <Megaphone className="w-20 h-20 rotate-12" />
+                  </div>
+                  <div className="relative z-10 h-full flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 mb-4">
+                        <Sparkles className="w-4 h-4 text-amber-400" />
+                        <span className="text-[10px] font-black text-white/70 uppercase tracking-widest">Marketing Kit</span>
+                      </div>
+                      <h4 className="text-lg font-black leading-tight mb-2">Generate your WhatsApp Status</h4>
+                      <p className="text-xs text-white/70 font-medium leading-relaxed">
+                        Let AI craft a perfect promotional post using your latest tour photos and reviews.
+                      </p>
+                    </div>
+                    <Button 
+                      onClick={handleGeneratePromoPost}
+                      disabled={isGeneratingPromo}
+                      className="mt-5 w-full bg-white text-primary-navy hover:bg-white/90 font-black rounded-xl text-xs h-10 shadow-lg shadow-white/10"
+                    >
+                      {isGeneratingPromo ? (
+                        <><Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> Crafting...</>
+                      ) : (
+                        <><MessageSquare className="w-3.5 h-3.5 mr-2" /> Copy AI Promo Post</>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
               {/* ── Business Overview ── */}
               <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="space-y-1 text-center md:text-left">
@@ -456,35 +559,35 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
                       <p className="text-slate-400 font-bold">No requests yet.</p>
                     </div>
                   ) : (
-                    bookings.slice(0, 3).map((b, i) => (
-                      <div key={b.id || i} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+                    bookings.slice(0, 3).map((booking, i) => (
+                      <div key={booking.id || i} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-400 border-2 border-white shadow-sm">
-                              {b.tourist_name?.[0]?.toUpperCase() || "?"}
+                              {booking.tourist_name?.[0]?.toUpperCase() || "?"}
                             </div>
                             <div>
-                              <p className="text-sm font-black text-charcoal leading-none mb-1">{b.tourist_name}</p>
-                              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{b.status}</p>
+                              <p className="text-sm font-black text-charcoal leading-none mb-1">{booking.tourist_name}</p>
+                              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{booking.status}</p>
                             </div>
                           </div>
-                          <span className={cn("text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest", STATUS_STYLES[b.status] || "bg-slate-100")}>
-                            {new Date(b.booking_date).toLocaleDateString()}
+                          <span className={cn("text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest", STATUS_STYLES[booking.status] || "bg-slate-100")}>
+                            {new Date(booking.booking_date).toLocaleDateString()}
                           </span>
                         </div>
-                        {b.status === "pending" && (
+                        {booking.status === "pending" && (
                           <div className="grid grid-cols-2 gap-2 mt-2">
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleUpdateStatus(b.id, "cancelled")}
+                              onClick={() => handleUpdateBookingStatus(booking.id, "cancelled")}
                               className="rounded-xl font-bold h-8 text-[11px] border-red-100 text-red-500"
                             >
                               Decline
                             </Button>
                             <Button
                               size="sm"
-                              onClick={() => handleUpdateStatus(b.id, "confirmed")}
+                              onClick={() => handleUpdateBookingStatus(booking.id, "confirmed")}
                               className="rounded-xl font-bold h-8 text-[11px] bg-emerald-500 hover:bg-emerald-600 text-white"
                             >
                               Confirm
@@ -496,7 +599,7 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
                   )}
                 </div>
 
-                {/* Desktop Table (Condensed) */}
+                  {/* Desktop Table (Condensed) */}
                 <div className="hidden lg:block bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                   {isLoadingBookings ? (
                     <div className="p-8 text-center text-muted-foreground font-bold">Loading bookings...</div>
@@ -513,24 +616,24 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
                         </tr>
                       </thead>
                       <tbody>
-                        {bookings.slice(0, 5).map((b) => (
-                          <tr key={b.id} className="border-b border-slate-100 last:border-none hover:bg-slate-50/30 transition-colors">
+                        {bookings.slice(0, 5).map((booking) => (
+                          <tr key={booking.id} className="border-b border-slate-100 last:border-none hover:bg-slate-50/30 transition-colors">
                             <td className="px-6 py-4">
-                              <p className="text-sm font-bold text-charcoal">{b.tourist_name}</p>
+                              <p className="text-sm font-bold text-charcoal">{booking.tourist_name}</p>
                             </td>
                             <td className="px-6 py-4 text-xs font-bold text-slate-600">
-                              {new Date(b.booking_date).toLocaleDateString()}
+                              {new Date(booking.booking_date).toLocaleDateString()}
                             </td>
                             <td className="px-6 py-4">
-                              <span className={cn("text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-wider", STATUS_STYLES[b.status] || "bg-slate-100")}>
-                                {b.status}
+                              <span className={cn("text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-wider", STATUS_STYLES[booking.status] || "bg-slate-100")}>
+                                {booking.status}
                               </span>
                             </td>
                             <td className="px-6 py-4 text-right">
-                              {b.status === "pending" ? (
+                              {booking.status === "pending" ? (
                                 <div className="flex items-center justify-end gap-2">
-                                  <button onClick={() => handleUpdateStatus(b.id, "confirmed")} className="text-emerald-500 hover:text-emerald-700 transition-colors"><Check size={16} /></button>
-                                  <button onClick={() => handleUpdateStatus(b.id, "cancelled")} className="text-red-500 hover:text-red-700 transition-colors"><XCircle size={16} /></button>
+                                  <button onClick={() => handleUpdateBookingStatus(booking.id, "confirmed")} className="text-emerald-500 hover:text-emerald-700 transition-colors"><Check size={16} /></button>
+                                  <button onClick={() => handleUpdateBookingStatus(booking.id, "cancelled")} className="text-red-500 hover:text-red-700 transition-colors"><XCircle size={16} /></button>
                                 </div>
                               ) : (
                                 <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Handled</span>
@@ -571,61 +674,116 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
-                    {bookings.map((b) => (
-                      <div key={b.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:border-primary-navy/20 transition-all">
+                    {bookings.map((booking) => (
+                      <div key={booking.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:border-primary-navy/20 transition-all">
                         <div className="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                           <div className="flex items-center gap-4">
                             <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-400 border-2 border-white shadow-sm text-xl flex-shrink-0">
-                              {b.tourist_name?.[0]?.toUpperCase()}
+                              {booking.tourist_name?.[0]?.toUpperCase()}
                             </div>
                             <div>
-                              <h3 className="text-base font-black text-charcoal">{b.tourist_name}</h3>
+                              <h3 className="text-base font-black text-charcoal">{booking.tourist_name}</h3>
                               <div className="flex flex-wrap items-center gap-3 mt-1.5">
                                 <span className="flex items-center gap-1.5 text-xs text-muted-foreground font-bold">
                                   <Calendar className="w-3.5 h-3.5" />
-                                  Booking: {new Date(b.booking_date).toLocaleDateString()}
+                                  Booking: {new Date(booking.booking_date).toLocaleDateString()}
                                 </span>
                                 <span className="flex items-center gap-1.5 text-xs text-muted-foreground font-bold">
                                   <Clock className="w-3.5 h-3.5" />
-                                  Requested: {formatDistanceToNow(new Date(b.created_at))} ago
+                                  Requested: {formatDistanceToNow(new Date(booking.created_at))} ago
                                 </span>
                                 <span className="flex items-center gap-1.5 text-xs text-muted-foreground font-bold">
                                   <Ticket className="w-3.5 h-3.5" />
-                                  Phone: {b.tourist_phone}
+                                  Phone: {booking.tourist_phone}
                                 </span>
                               </div>
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between lg:justify-end gap-3 border-t lg:border-t-0 pt-4 lg:pt-0 border-slate-50">
-                            <span className={cn("text-[11px] font-black px-3 py-1.5 rounded-full uppercase tracking-wider", STATUS_STYLES[b.status] || "bg-slate-100")}>
-                              {b.status}
+                          <div className="flex flex-col gap-2 border-t lg:border-t-0 pt-4 lg:pt-0 border-slate-50 w-full lg:w-auto">
+                            <span className={cn("text-[11px] font-black px-3 py-1.5 rounded-full uppercase tracking-wider text-center", STATUS_STYLES[booking.status] || "bg-slate-100")}>
+                              {booking.status}
                             </span>
 
-                            {b.status === "pending" && (
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleUpdateStatus(b.id, "cancelled")}
-                                  className="rounded-xl font-black h-10 px-4 text-red-500 hover:bg-red-50 border-red-50"
-                                >
-                                  Decline
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleUpdateStatus(b.id, "confirmed")}
-                                  className="rounded-xl font-black h-10 px-6 bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-100"
-                                >
-                                  Confirm
-                                </Button>
+                            {booking.status === "pending" && (
+                              <div className="flex flex-col gap-2">
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleUpdateBookingStatus(booking.id, "cancelled")}
+                                    className="rounded-xl font-black h-10 px-4 text-red-500 hover:bg-red-50 border-red-50 flex-1"
+                                  >
+                                    Decline
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleUpdateBookingStatus(booking.id, "confirmed")}
+                                    className="rounded-xl font-black h-10 px-6 bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-100 flex-1"
+                                  >
+                                    Confirm
+                                  </Button>
+                                </div>
+                                
+                                {/* AI Smart Response Area */}
+                                <div className="pt-2 border-t border-slate-50">
+                                  {!suggestedReplies[booking.id] ? (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      disabled={suggestingReplyId === booking.id}
+                                      onClick={() => handleSuggestReply(booking)}
+                                      className="w-full justify-start text-[10px] font-black uppercase tracking-wider text-primary-navy hover:bg-primary-navy/5 h-8"
+                                    >
+                                      <Sparkles className={cn("w-3 h-3 mr-2 text-primary-navy", suggestingReplyId === booking.id && "animate-spin")} />
+                                      {suggestingReplyId === booking.id ? "Drafting..." : "Suggest AI Reply"}
+                                    </Button>
+                                  ) : (
+                                    <div className="bg-primary-navy/[0.03] rounded-xl p-3 space-y-2 border border-primary-navy/5 animate-in fade-in slide-in-from-top-2">
+                                      <p className="text-[10px] text-charcoal font-medium leading-relaxed italic">
+                                        "{suggestedReplies[booking.id]}"
+                                      </p>
+                                      <div className="flex gap-2">
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-7 text-[9px] font-black bg-white flex-1 rounded-lg"
+                                          onClick={() => {
+                                            navigator.clipboard.writeText(suggestedReplies[booking.id]);
+                                            toast.success("AI Draft copied!");
+                                          }}
+                                        >
+                                          <Copy className="w-2.5 h-2.5 mr-1.5" />
+                                          Copy Draft
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-7 text-[9px] font-black flex-1 rounded-lg"
+                                          onClick={() => setSuggestedReplies(prev => {
+                                            const next = { ...prev };
+                                            delete next[booking.id];
+                                            return next;
+                                          })}
+                                        >
+                                          Clear
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             )}
 
-                            {b.status === "confirmed" && (
-                              <button className="flex items-center gap-2 text-primary-navy font-black text-xs hover:underline">
-                                <ExternalLink size={14} /> Contact Tourist
-                              </button>
+                            {booking.status === "confirmed" && (
+                              <a 
+                                href={`https://wa.me/${booking.tourist_phone?.replace(/[^0-9]/g, "")}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-center gap-2 text-primary-navy font-black text-xs hover:underline decoration-2 underline-offset-4"
+                              >
+                                <ExternalLink size={14} /> Contact via WhatsApp
+                              </a>
                             )}
                           </div>
                         </div>
@@ -725,13 +883,62 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
           {activeNav === "settings" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
               <div>
-                <h2 className="text-2xl font-black text-charcoal">Account Settings</h2>
-                <p className="text-sm text-muted-foreground font-medium">Manage your profile and account preferences.</p>
+                <h2 className="text-2xl font-black text-charcoal">Profile & Highlights</h2>
+                <p className="text-sm text-muted-foreground font-medium">Manage your tour highlights and profile details.</p>
               </div>
-              <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-12 text-center">
-                <Settings className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-                <h3 className="text-lg font-black text-charcoal">Settings coming soon</h3>
-                <p className="text-sm text-muted-foreground max-w-sm mx-auto mt-2 font-medium">We're building more tools to help you manage your tour business effectively.</p>
+              
+              <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8 max-w-2xl space-y-8">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-black text-charcoal">Tour Highlights</h3>
+                      <p className="text-xs text-muted-foreground font-medium">Add trending tags like "Night Markets" to attract more matches.</p>
+                    </div>
+                    <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center">
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {["Night Markets", "Street Food", "Cultural Walk", "Hidden Gems", "Local Markets"].map(tag => (
+                      <button
+                        key={tag}
+                        onClick={async () => {
+                          try {
+                            await updateStorefrontHighlights(userId!, [tag]);
+                            toast.success(`"${tag}" added to your highlights!`);
+                          } catch (err) {
+                            toast.error("Failed to update highlights.");
+                          }
+                        }}
+                        className="px-4 py-2 rounded-xl bg-slate-50 border border-slate-100 text-[11px] font-bold text-slate-600 hover:bg-primary-navy hover:text-white transition-all"
+                      >
+                        + {tag}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="pt-6 border-t border-slate-50">
+                    <h3 className="text-sm font-black text-charcoal uppercase tracking-widest text-slate-400 mb-4">Account Overview</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Display Name</p>
+                        <p className="text-xs font-bold text-charcoal">{displayName}</p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Category</p>
+                        <p className="text-xs font-bold text-charcoal">{category || "Local Guide"}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-amber-50/50 rounded-2xl p-4 border border-amber-100 flex gap-3">
+                  <Bell className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                  <p className="text-[11px] text-amber-800 font-medium leading-relaxed">
+                    <span className="font-bold">Pro Tip:</span> Updating your highlights frequently helps our AI match you with the right travelers looking for specific experiences in {location}.
+                  </p>
+                </div>
               </div>
             </div>
           )}

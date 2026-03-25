@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { searchStorefronts } from "@/lib/onboardingService";
 import { ChevronLeft, Star, MapPin, CheckCircle2, MessageCircle, Loader2, Sparkles, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -30,6 +32,8 @@ const TouristMatchResults = ({ preferences, onBack, onSelectGuide }: TouristMatc
   const [itinerary, setItinerary] = useState<any>(null);
   const [itineraryLoading, setItineraryLoading] = useState(false);
   const [itineraryGuideId, setItineraryGuideId] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const searchBarQuery = searchParams.get("search");
 
   const generateItinerary = async (guide: GuideMatch) => {
     // If clicking the one already generated, just scroll to it
@@ -78,30 +82,56 @@ const TouristMatchResults = ({ preferences, onBack, onSelectGuide }: TouristMatc
   };
 
   useEffect(() => {
-    if (!preferences) {
-      setLoading(false);
-      return;
-    }
-
-    // Stable cache key: sort keys so object property order doesn't matter
-    const cacheKey = `akwantuo_matches_${JSON.stringify(
-      Object.fromEntries(Object.entries(preferences).sort())
-    )}`;
-
-    // Check cache first — avoids hitting the AI again for the same preferences
-    const cached = sessionStorage.getItem(cacheKey);
-    if (cached) {
-      try {
-        setMatches(JSON.parse(cached));
-        setLoading(false);
-        return;
-      } catch (_) {
-        sessionStorage.removeItem(cacheKey); // corrupted cache — refetch
-      }
-    }
-
     const fetchMatches = async () => {
       setLoading(true);
+      
+      // OPTION 1: Search Query from Homepage Search Bar
+      if (searchBarQuery) {
+        try {
+          const results = await searchStorefronts(searchBarQuery);
+          const mapped = (results || []).map(r => ({
+            id: r.storefront.user_id,
+            name: r.storefront.business_name,
+            slug: r.slug,
+            phone: r.profile?.phone || "",
+            location: r.storefront.location,
+            bio: r.descriptionPayload?.bio || r.descriptionPayload?.text || "Expert local guide available for custom tours.",
+            matchScore: 98,
+            matchReason: `Directly matches your search for "${searchBarQuery}"`,
+            image: r.descriptionPayload?.mainPhoto || "/platform_hero_guide.png",
+          }));
+          setMatches(mapped);
+          setLoading(false);
+        } catch (err) {
+          console.error("Search fetch error:", err);
+          setLoading(false);
+        }
+        return;
+      }
+
+      // OPTION 2: MatchMaker Flow
+      if (!preferences) {
+        setLoading(false);
+        return;
+      }
+
+      // Stable cache key: sort keys so object property order doesn't matter
+      const cacheKey = `akwantuo_matches_${JSON.stringify(
+        Object.fromEntries(Object.entries(preferences).sort())
+      )}`;
+
+      // Check cache first — avoids hitting the AI again for the same preferences
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          setMatches(JSON.parse(cached));
+          setLoading(false);
+          return;
+        } catch (_) {
+          sessionStorage.removeItem(cacheKey); // corrupted cache — refetch
+        }
+      }
+
       try {
         const { data, error } = await supabase.functions.invoke("match-guide", {
           body: { preferences },
@@ -109,7 +139,7 @@ const TouristMatchResults = ({ preferences, onBack, onSelectGuide }: TouristMatc
 
         if (error) throw error;
 
-        const processedMatches = (data?.matches ?? []).map((m: any, idx: number) => ({
+        const processedMatches = (data?.guides ?? []).map((m: any, idx: number) => ({
           ...m,
           image: m.image || `https://images.unsplash.com/photo-${[
             "1506794778202-cad84cf45f1d",
@@ -123,14 +153,13 @@ const TouristMatchResults = ({ preferences, onBack, onSelectGuide }: TouristMatc
         sessionStorage.setItem(cacheKey, JSON.stringify(processedMatches));
       } catch (err) {
         console.error("Matchmaking Error:", err);
-        toast.error("Matching failed. Please try again.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchMatches();
-  }, [preferences]);
+  }, [preferences, searchBarQuery]);
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center p-4 sm:p-8 md:p-12">
@@ -174,6 +203,7 @@ const TouristMatchResults = ({ preferences, onBack, onSelectGuide }: TouristMatc
           </div>
         ) : (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700 pb-20">
+            {/* Results Title Card */}
             <div className="bg-primary-navy rounded-[2rem] p-6 text-white shadow-xl relative overflow-hidden mb-8">
               <div className="relative z-10 flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
@@ -192,8 +222,8 @@ const TouristMatchResults = ({ preferences, onBack, onSelectGuide }: TouristMatc
                 <div 
                   key={guide.id}
                   className={cn(
-                    "bg-white rounded-[2rem] p-5 border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 relative group",
-                    idx === 0 && "ring-2 ring-primary-navy/10"
+                    "bg-white rounded-[2rem] p-5 border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 relative group animate-in fade-in slide-in-from-bottom-8 fill-mode-both",
+                    idx === 0 ? "delay-[100ms] ring-2 ring-primary-navy/10" : idx === 1 ? "delay-[300ms]" : "delay-[500ms]"
                   )}
                 >
                   {/* Match Badge */}
@@ -215,6 +245,7 @@ const TouristMatchResults = ({ preferences, onBack, onSelectGuide }: TouristMatc
                     </div>
                   </div>
 
+                  {/* Highlight/Bio Section */}
                   <div className="bg-[#f8fafc] rounded-2xl p-4 mb-4 border border-slate-50">
                     <p className="text-xs font-black text-primary-navy uppercase tracking-[0.15em] mb-2 flex items-center gap-2">
                        WHY THIS MATCH?

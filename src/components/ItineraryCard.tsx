@@ -161,18 +161,18 @@ const ItineraryCard = ({ itinerary, guideName }: ItineraryCardProps) => {
                     <div className="absolute left-[9px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-slate-200 to-transparent rounded-full" />
 
                     {TIME_SLOTS.map((slot, sIdx) => (
-                      <div key={slot.key} className={cn("relative flex items-start gap-4", sIdx < TIME_SLOTS.length - 1 && "pb-5")}>
+                      <div key={slot.key} className={cn("relative flex items-start gap-3 sm:gap-4", sIdx < TIME_SLOTS.length - 1 && "pb-5")}>
                         {/* Timeline dot */}
                         <div className={cn("absolute -left-6 top-3 w-3 h-3 rounded-full border-2 border-white shadow-sm flex-shrink-0", pal.dot)} />
 
-                        <div className={cn("flex-1 rounded-2xl p-4 border", pal.pillBg, `border-${pal.dot.replace('bg-', '')}/20`)}>
+                        <div className={cn("flex-1 rounded-2xl p-3 sm:p-4 border", pal.pillBg, `border-${pal.dot.replace('bg-', '')}/20`)}>
                           <div className="flex items-center gap-2 mb-1.5">
-                            <span className="text-base leading-none">{slot.emoji}</span>
-                            <span className={cn("text-[10px] font-black uppercase tracking-widest", pal.pillText)}>
+                            <span className="text-sm sm:text-base leading-none">{slot.emoji}</span>
+                            <span className={cn("text-[9px] sm:text-[10px] font-black uppercase tracking-widest", pal.pillText)}>
                               {slot.label}
                             </span>
                           </div>
-                          <p className="text-sm text-charcoal font-semibold leading-snug">
+                          <p className="text-xs sm:text-sm text-charcoal font-semibold leading-snug">
                             {day[slot.key]}
                           </p>
                         </div>

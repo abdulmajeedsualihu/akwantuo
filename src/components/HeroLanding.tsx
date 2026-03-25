@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowRight, Sparkles, Zap, Globe, Camera, Share2, MapPin, ChevronLeft, ChevronRight, CheckCircle2, CalendarDays, Rocket } from "lucide-react";
+import { ArrowRight, Sparkles, Zap, Globe, Camera, Share2, MapPin, ChevronLeft, ChevronRight, CheckCircle2, CalendarDays, Rocket, Search, Megaphone, TrendingUp, MessageSquare, ShieldCheck, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import AkwantuoLogo from "./AkwantuoLogo";
 import { LandingPageRecord } from "@/lib/onboardingService";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 interface HeroLandingProps {
   onGetStarted: (persona: "tourist" | "guide") => void;
@@ -82,6 +82,8 @@ const PERSONA_CONTENT = {
 const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [persona, setPersona] = useState<"tourist" | "guide">("tourist");
+  const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
   const latestExperiencesRef = useRef<HTMLElement>(null);
 
   const content = PERSONA_CONTENT[persona];
@@ -96,6 +98,11 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
 
   const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % HERO_IMAGES.length);
   const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + HERO_IMAGES.length) % HERO_IMAGES.length);
+
+  const handleSearch = () => {
+    if (!searchQuery.trim()) return;
+    navigate(`/onboarding/match-results?search=${encodeURIComponent(searchQuery.trim())}`);
+  };
   return (
     <div className="flex flex-col min-h-screen bg-white">
       {/* Dynamic Header with Glassmorphism */}
@@ -186,7 +193,7 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
                 </div>
 
                 <div className="space-y-6">
-                  <h1 className="text-5xl sm:text-7xl xl:text-8xl font-black tracking-tight leading-[0.95] text-charcoal">
+                  <h1 className="text-4xl sm:text-7xl xl:text-8xl font-black tracking-tight leading-[0.95] text-charcoal">
                     {content.headlineMain}
                     <span className={cn(
                       "bg-clip-text text-transparent bg-gradient-to-r",
@@ -199,6 +206,30 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
                   <p className="text-xl sm:text-2xl text-muted-foreground font-medium leading-relaxed max-w-2xl mx-auto lg:mx-0">
                     {content.subtext}
                   </p>
+
+                  {persona === "tourist" && (
+                    <div className="relative max-w-xl mx-auto lg:mx-0 group pt-2">
+                      <div className="absolute inset-y-2 left-0 pl-10 pt-2 flex items-center pointer-events-none z-10">
+                        <Search className="w-5 h-5 text-slate-400 group-focus-within:text-primary-navy transition-colors" />
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Search for guides, locations, or experiences..."
+                        className="block w-full h-16 pl-12 pr-4 bg-white border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary-navy/10 focus:border-primary-navy transition-all font-medium text-charcoal shadow-sm outline-none"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                      />
+                      <div className="absolute inset-y-2 right-2 flex items-center">
+                        <Button 
+                          onClick={handleSearch}
+                          className="h-12 px-6 rounded-xl bg-primary-navy text-white font-black hover:opacity-90 transition-all text-sm"
+                        >
+                          Search
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-5 justify-center lg:justify-start pt-4">
@@ -238,8 +269,13 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
                       <img
                         src={img.url}
                         alt={img.caption}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />
+                      {/* AI Verified Badge */}
+                      <div className="absolute top-6 left-6 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-premium text-[10px] font-black text-white uppercase tracking-wider backdrop-blur-md shadow-lg scale-90 sm:scale-100">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        AI Verified
+                      </div>
                       {/* Caption Overlay */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                       <div className="absolute bottom-10 left-10 text-white space-y-2">
@@ -301,7 +337,7 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
           </div>
         </section>
 
-        {/* AI Trip Planning Showcase - NEW SECTION */}
+        {/* AI Trip Planning Showcase - FOR TOURISTS */}
         {persona === "tourist" && (
           <section className="py-24 bg-slate-50 overflow-hidden border-y border-slate-100">
             <div className="max-w-7xl mx-auto px-6 lg:px-10">
@@ -375,6 +411,110 @@ const HeroLanding = ({ onGetStarted, latestTours }: HeroLandingProps) => {
                   <div className="absolute -bottom-6 -right-6 bg-charcoal text-white px-6 py-4 rounded-2xl shadow-2xl z-20 animate-bounce">
                      <p className="text-[10px] font-black uppercase tracking-widest mb-1">Guide Recommendation</p>
                      <p className="text-xs font-medium">"Try the Banku at Osu!" 🍲</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* AI Guide Studio Showcase - NEW SECTION FOR GUIDES */}
+        {persona === "guide" && (
+          <section className="py-24 bg-slate-950 overflow-hidden relative">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary-navy/20 via-transparent to-transparent opacity-50" />
+            
+            <div className="max-w-7xl mx-auto px-6 lg:px-10 relative z-10">
+              <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
+                <div className="flex-1 space-y-8">
+                  <div className="inline-flex items-center gap-2 bg-primary-navy/20 border border-primary-navy/30 rounded-full px-4 py-1.5 backdrop-blur-md">
+                    <Sparkles className="w-4 h-4 text-blue-400 animate-pulse" />
+                    <span className="text-xs font-black text-blue-300 uppercase tracking-widest text-[10px]">AI Guide Studio</span>
+                  </div>
+
+                  <h2 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-[1.1]">
+                    Your Personal<br />
+                    <span className="text-blue-400 text-glow">Growth Engine.</span>
+                  </h2>
+
+                  <p className="text-lg text-slate-300 font-medium leading-relaxed max-w-xl">
+                    Akwantuo isn't just a profile—it's a partner. Our AI analyzes tourist trends to give you growth tips and crafts high-conversion marketing posts for your WhatsApp Status in one click.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {[
+                      { icon: <Megaphone size={18} />, title: "Marketing Kit", text: "AI-generated WhatsApp posts" },
+                      { icon: <TrendingUp size={18} />, title: "Growth Pulse", text: "Real-time tourist trend alerts" },
+                      { icon: <MessageSquare size={18} />, title: "Smart Assistant", text: "AI-drafted booking replies" },
+                      { icon: <ShieldCheck size={18} />, title: "Verified Trust", text: "AI-backed host credentials" },
+                    ].map((feat, i) => (
+                      <div key={i} className="bg-white/5 backdrop-blur-sm p-5 rounded-2xl border border-white/10 hover:border-blue-500/30 transition-colors group">
+                        <div className="text-blue-400 mb-2 group-hover:scale-110 transition-transform">{feat.icon}</div>
+                        <p className="font-bold text-white text-sm">{feat.title}</p>
+                        <p className="text-xs text-slate-400 font-medium">{feat.text}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Button
+                    onClick={() => onGetStarted(persona)}
+                    className="h-16 px-10 rounded-2xl bg-blue-600 text-white font-black hover:bg-blue-500 transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)] text-lg"
+                  >
+                    Launch Your AI Studio
+                  </Button>
+                </div>
+
+                <div className="flex-1 relative w-full max-w-lg">
+                  {/* Glowing background */}
+                  <div className="absolute -inset-10 bg-blue-600/20 blur-[100px] rounded-full" />
+                  
+                  {/* Mock Studio Interface */}
+                  <div className="relative z-10 bg-slate-900 rounded-[2.5rem] shadow-2xl border border-white/10 overflow-hidden p-1 transform lg:rotate-2 hover:rotate-0 transition-transform duration-700">
+                    <div className="bg-slate-800/50 rounded-[2.25rem] p-8 space-y-6">
+                      <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white">
+                               <Sparkles size={20} />
+                            </div>
+                            <div>
+                               <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Guide Insights</p>
+                               <p className="text-sm font-bold text-white">Growth Pulse</p>
+                            </div>
+                         </div>
+                      </div>
+
+                      <div className="bg-blue-600/10 border border-blue-500/20 p-5 rounded-2xl space-y-3">
+                         <div className="flex items-center gap-2 text-blue-400">
+                            <Zap size={14} />
+                            <span className="text-[10px] font-black uppercase tracking-widest">Hot Tip</span>
+                         </div>
+                         <p className="text-xs text-white font-medium leading-relaxed">
+                            "Tourists in Accra are searching for <span className="text-blue-400 font-bold">#StreetFood</span> and <span className="text-blue-400 font-bold">#NightMarkets</span>. Update your highlights to rank higher!"
+                         </p>
+                      </div>
+
+                      <div className="space-y-3">
+                         <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Marketing Kit</p>
+                         <div className="bg-slate-900 border border-white/5 p-4 rounded-xl">
+                            <div className="flex gap-2 mb-2">
+                               <div className="w-2 h-2 rounded-full bg-red-400" />
+                               <div className="w-2 h-2 rounded-full bg-yellow-400" />
+                               <div className="w-2 h-2 rounded-full bg-green-400" />
+                            </div>
+                            <p className="text-[10px] text-slate-400 italic">"Explore the soul of Accra with me! 🇬🇭 From hidden night markets to..."</p>
+                         </div>
+                         <Button className="w-full bg-slate-800 hover:bg-slate-700 border border-white/10 text-xs font-bold h-10">
+                            Copy AI Promo
+                         </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Floating Notification */}
+                  <div className="absolute -bottom-4 -left-8 bg-blue-600 text-white px-5 py-3 rounded-2xl shadow-2xl z-20 animate-pulse border border-blue-400/50">
+                     <div className="flex items-center gap-2">
+                        <MessageSquare size={14} />
+                        <p className="text-[10px] font-black uppercase tracking-widest">New Booking Reply Drafted!</p>
+                     </div>
                   </div>
                 </div>
               </div>

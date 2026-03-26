@@ -139,7 +139,7 @@ const TouristMatchResults = ({ preferences, onBack, onSelectGuide }: TouristMatc
 
         if (error) throw error;
 
-        const processedMatches = (data?.guides ?? []).map((m: any, idx: number) => ({
+        const processedMatches = (data?.matches ?? []).map((m: any, idx: number) => ({
           ...m,
           image: m.image || `https://images.unsplash.com/photo-${[
             "1506794778202-cad84cf45f1d",

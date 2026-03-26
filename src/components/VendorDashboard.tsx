@@ -125,6 +125,12 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
   const [isGeneratingPromo, setIsGeneratingPromo] = useState(false);
   const [showPromoModal, setShowPromoModal] = useState(false);
   const [promoPostContent, setPromoPostContent] = useState("");
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [assistantMessages, setAssistantMessages] = useState<any[]>([
+    { role: "assistant", content: `Hey ${displayName}! I'm your AI Business Assistant. Ask me anything about your bookings, business tips, or how to grow your audience! 🇬🇭` }
+  ]);
+  const [assistantInput, setAssistantInput] = useState("");
+  const [isAssistantLoading, setIsAssistantLoading] = useState(false);
 
   console.log("VendorDashboard props:", { displayName, slug, userId });
   const publicUrl = buildLandingUrl({ slug, displayName });
@@ -282,6 +288,44 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
       toast.error("Failed to generate promo post.");
     } finally {
       setIsGeneratingPromo(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!assistantInput.trim() || isAssistantLoading) return;
+    
+    const userMessage = { role: "user", content: assistantInput };
+    const currentInput = assistantInput;
+    setAssistantMessages(prev => [...prev, userMessage]);
+    setAssistantInput("");
+    setIsAssistantLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-business-assistant", {
+        body: {
+          userId,
+          message: currentInput,
+          history: assistantMessages.slice(-6).map(m => ({ role: m.role, content: m.content }))
+        },
+      });
+      if (error) throw error;
+      
+      let cleanResponse = data.response.trim();
+      // Remove double asterisks (markdown bold)
+      cleanResponse = cleanResponse.replace(/\*\*/g, '');
+      // Remove surrounding quotes
+      if (cleanResponse.startsWith('"') && cleanResponse.endsWith('"')) {
+        cleanResponse = cleanResponse.slice(1, -1).trim();
+      }
+      // Remove common AI prefixes
+      cleanResponse = cleanResponse.replace(/^(Assistant|AI|Akwantuo AI|Strategist):\s*/i, '');
+      
+      setAssistantMessages(prev => [...prev, { role: "assistant", content: cleanResponse }]);
+    } catch (err) {
+      console.error("Assistant Error:", err);
+      toast.error("Failed to get response from AI Business Assistant.");
+    } finally {
+      setIsAssistantLoading(false);
     }
   };
 
@@ -500,6 +544,30 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
                   </div>
                 </div>
 
+                <div className="bg-gradient-to-br from-[#1E293B] to-[#0F172A] rounded-3xl p-6 text-white relative overflow-hidden shadow-xl shadow-slate-900/10 group cursor-pointer" onClick={() => setIsAssistantOpen(true)}>
+                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <MessageSquare className="w-20 h-20 -rotate-12" />
+                  </div>
+                  <div className="relative z-10 h-full flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 mb-4">
+                        <Sparkles className="w-4 h-4 text-emerald-400" />
+                        <span className="text-[10px] font-black text-white/70 uppercase tracking-widest">Business Assistant</span>
+                      </div>
+                      <h4 className="text-lg font-black leading-tight mb-2">Chat with your AI Business Strategist</h4>
+                      <p className="text-xs text-white/70 font-medium leading-relaxed">
+                        Get insights on your bookings, growth tips, and personalized business advice in real-time.
+                      </p>
+                    </div>
+                    <Button
+                      onClick={(e: React.MouseEvent) => { e.stopPropagation(); setIsAssistantOpen(true); }}
+                      className="mt-5 w-full bg-emerald-500 text-white hover:bg-emerald-600 font-black rounded-xl text-xs h-10 shadow-lg shadow-emerald-900/10"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 mr-2" /> Talk to AI Assistant
+                    </Button>
+                  </div>
+                </div>
+
                 <div className="bg-gradient-to-br from-primary-navy to-charcoal rounded-3xl p-6 text-white relative overflow-hidden shadow-xl shadow-primary-navy/10">
                   <div className="absolute top-0 right-0 p-4 opacity-20">
                     <Megaphone className="w-20 h-20 rotate-12" />
@@ -524,7 +592,7 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
                         <><Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> Crafting...</>
                       ) : (
                         <><MessageSquare className="w-3.5 h-3.5 mr-2" /> Copy AI Promo Post</>
-                      )}
+                      ) }
                     </Button>
                   </div>
                 </div>
@@ -1030,6 +1098,79 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
                   Close
                 </Button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── AI Business Assistant Sidebar ── */}
+      {isAssistantOpen && (
+        <div className="fixed inset-0 z-[110] flex items-end sm:items-stretch sm:justify-end animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsAssistantOpen(false)} />
+          <div className="relative w-full sm:w-[420px] bg-white h-[90vh] sm:h-full shadow-2xl flex flex-col animate-in slide-in-from-right-full duration-500 ease-in-out sm:rounded-l-[2rem]">
+            {/* Header */}
+            <div className="bg-primary-navy p-6 pt-8 text-white relative sm:rounded-tl-[2rem]">
+              <button 
+                onClick={() => setIsAssistantOpen(false)}
+                className="absolute top-6 right-6 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+              <div className="flex items-center gap-3 mb-2">
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Akwantuo AI</span>
+              </div>
+              <h3 className="text-xl font-black">Business Assistant</h3>
+              <p className="text-xs text-white/60 font-medium mt-1">Your personal tourism strategist</p>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 pt-8 custom-scrollbar bg-slate-50/30">
+              {assistantMessages.map((msg, i) => (
+                <div key={i} className={cn("flex flex-col", msg.role === "user" ? "items-end" : "items-start")}>
+                  <div className={cn(
+                    "max-w-[85%] p-4 rounded-2xl text-sm font-medium leading-relaxed shadow-sm whitespace-pre-wrap",
+                    msg.role === "user" 
+                      ? "bg-primary-navy text-white rounded-tr-none" 
+                      : "bg-white text-charcoal border border-slate-100 rounded-tl-none"
+                  )}>
+                    {msg.content}
+                  </div>
+                  <span className="text-[9px] font-bold text-muted-foreground mt-1.5 uppercase tracking-wide px-1">
+                    {msg.role === "user" ? "You" : "Assistant"}
+                  </span>
+                </div>
+              ))}
+              {isAssistantLoading && (
+                <div className="flex flex-col items-start animate-pulse">
+                  <div className="bg-white p-4 rounded-2xl rounded-tl-none border border-slate-100 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-primary-navy" />
+                    <span className="text-xs font-bold text-slate-400">Thinking...</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Input */}
+            <div className="p-6 bg-white border-t border-slate-100 sm:rounded-bl-[2rem]">
+              <form 
+                onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}
+                className="flex items-center gap-2 bg-slate-50 border border-slate-200 p-2 rounded-2xl focus-within:border-primary-navy transition-all"
+              >
+                <input 
+                  value={assistantInput}
+                  onChange={(e) => setAssistantInput(e.target.value)}
+                  placeholder="Ask about your bookings or growth..."
+                  className="flex-1 bg-transparent border-none outline-none px-3 text-sm font-medium"
+                  disabled={isAssistantLoading}
+                />
+                <Button 
+                  type="submit"
+                  disabled={isAssistantLoading || !assistantInput.trim()}
+                  className="w-10 h-10 p-0 rounded-xl bg-primary-navy hover:bg-primary-navy/90 text-white"
+                >
+                  <TrendingUp className="w-4 h-4 rotate-45" />
+                </Button>
+              </form>
             </div>
           </div>
         </div>

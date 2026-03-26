@@ -544,30 +544,7 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-[#1E293B] to-[#0F172A] rounded-3xl p-6 text-white relative overflow-hidden shadow-xl shadow-slate-900/10 group cursor-pointer" onClick={() => setIsAssistantOpen(true)}>
-                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <MessageSquare className="w-20 h-20 -rotate-12" />
-                  </div>
-                  <div className="relative z-10 h-full flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 mb-4">
-                        <Sparkles className="w-4 h-4 text-emerald-400" />
-                        <span className="text-[10px] font-black text-white/70 uppercase tracking-widest">Business Assistant</span>
-                      </div>
-                      <h4 className="text-lg font-black leading-tight mb-2">Chat with your AI Business Strategist</h4>
-                      <p className="text-xs text-white/70 font-medium leading-relaxed">
-                        Get insights on your bookings, growth tips, and personalized business advice in real-time.
-                      </p>
-                    </div>
-                    <Button
-                      onClick={(e: React.MouseEvent) => { e.stopPropagation(); setIsAssistantOpen(true); }}
-                      className="mt-5 w-full bg-emerald-500 text-white hover:bg-emerald-600 font-black rounded-xl text-xs h-10 shadow-lg shadow-emerald-900/10"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5 mr-2" /> Talk to AI Assistant
-                    </Button>
-                  </div>
-                </div>
-
+                {/* Marketing Kit Card */}
                 <div className="bg-gradient-to-br from-primary-navy to-charcoal rounded-3xl p-6 text-white relative overflow-hidden shadow-xl shadow-primary-navy/10">
                   <div className="absolute top-0 right-0 p-4 opacity-20">
                     <Megaphone className="w-20 h-20 rotate-12" />
@@ -1173,6 +1150,24 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
               </form>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── AI Assistant Sticky FAB ── */}
+      {!isAssistantOpen && (
+        <div className="fixed bottom-24 lg:bottom-10 right-6 z-40">
+          <button
+            onClick={() => setIsAssistantOpen(true)}
+            className="group flex items-center gap-3 bg-[#1E293B] text-white p-2 pr-6 rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all border border-white/10 animate-in slide-in-from-right-8 duration-500"
+          >
+            <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <MessageSquare className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex flex-col items-start translate-y-[1px]">
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-400 leading-none mb-1">AI Assistant</span>
+              <span className="text-xs font-black whitespace-nowrap leading-none">Talk to Strategist</span>
+            </div>
+          </button>
         </div>
       )}
     </div>

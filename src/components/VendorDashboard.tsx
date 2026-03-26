@@ -123,6 +123,8 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
   const [suggestingReplyId, setSuggestingReplyId] = useState<string | null>(null);
   const [suggestedReplies, setSuggestedReplies] = useState<Record<string, string>>({});
   const [isGeneratingPromo, setIsGeneratingPromo] = useState(false);
+  const [showPromoModal, setShowPromoModal] = useState(false);
+  const [promoPostContent, setPromoPostContent] = useState("");
 
   console.log("VendorDashboard props:", { displayName, slug, userId });
   const publicUrl = buildLandingUrl({ slug, displayName });
@@ -262,10 +264,18 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
       });
       if (error) throw error;
       if (data?.promoPost) {
+        // Remove surrounding quotes if they exist
+        let cleanPost = data.promoPost.trim();
+        if (cleanPost.startsWith('"') && cleanPost.endsWith('"')) {
+          cleanPost = cleanPost.slice(1, -1);
+        }
+
         // Append the public URL to the AI generated post
-        const fullPost = `${data.promoPost}\n\nBook here: ${publicUrl}`;
+        const fullPost = `${cleanPost}\n\nBook here: ${publicUrl}`;
+        setPromoPostContent(fullPost);
+        setShowPromoModal(true);
         navigator.clipboard.writeText(fullPost);
-        toast.success("AI Promo copied for WhatsApp!");
+        toast.success("AI Promo generated!");
       }
     } catch (err) {
       console.error("Promo Generation Error:", err);
@@ -411,7 +421,7 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
             <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
               {/* ── Greeting ── */}
               <div className="hidden lg:block">
-                  Hey, {(displayName || "Guide").toLocaleUpperCase()} 👋
+                Hey, {(displayName || "Guide").toLocaleUpperCase()} 👋
                 <p className="text-sm text-muted-foreground font-medium mt-0.5">
                   Manage your <span className="text-primary-navy font-bold">{category || "Tour"}</span> experience in <span className="text-primary-navy font-bold">{location || "Ghana"}</span>.
                 </p>
@@ -442,7 +452,7 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 lg:p-5 space-y-2">
                   <p className="text-[11px] font-bold text-muted-foreground truncate uppercase tracking-wider">Profile Impressions</p>
                   <div className="flex items-end justify-between gap-1">
-                    <p className="text-2xl lg:text-3xl font-black text-charcoal">1,284</p>
+                    <p className="text-2xl lg:text-3xl font-black text-charcoal">30</p>
                     <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full flex-shrink-0 text-emerald-700 bg-emerald-50">+12%</span>
                   </div>
                 </div>
@@ -477,16 +487,16 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
                     </div>
                     <h4 className="text-lg font-black text-charcoal mb-2">Increase your match rate by 20%</h4>
                     <p className="text-xs text-muted-foreground font-medium leading-relaxed mb-4">
-                      Tourists are currently searching for <span className="text-primary-navy font-bold">"Night Markets"</span> and <span className="text-primary-navy font-bold">"Street Food"</span> in Accra. Add these to your highlights to get more matches.
+                      Tourists are currently searching for <span className="text-primary-navy font-bold">"Beaches"</span> and <span className="text-primary-navy font-bold">"Historical Sites"</span> in Accra. Add these to your highlights to get more matches.
                     </p>
-                     <Button 
-                       variant="outline" 
-                       size="sm" 
-                       className="rounded-xl font-bold bg-white text-[10px] h-8 border-slate-200"
-                       onClick={() => setActiveNav("settings")}
-                     >
-                       Update Highlights
-                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl font-bold bg-white text-[10px] h-8 border-slate-200"
+                      onClick={() => setActiveNav("settings")}
+                    >
+                      Update Highlights
+                    </Button>
                   </div>
                 </div>
 
@@ -500,12 +510,12 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
                         <Sparkles className="w-4 h-4 text-amber-400" />
                         <span className="text-[10px] font-black text-white/70 uppercase tracking-widest">Marketing Kit</span>
                       </div>
-                      <h4 className="text-lg font-black leading-tight mb-2">Generate your WhatsApp Status</h4>
+                      <h4 className="text-lg font-black leading-tight mb-2">Instant Marketing Copy Creation Using AI</h4>
                       <p className="text-xs text-white/70 font-medium leading-relaxed">
                         Let AI craft a perfect promotional post using your latest tour photos and reviews.
                       </p>
                     </div>
-                    <Button 
+                    <Button
                       onClick={handleGeneratePromoPost}
                       disabled={isGeneratingPromo}
                       className="mt-5 w-full bg-white text-primary-navy hover:bg-white/90 font-black rounded-xl text-xs h-10 shadow-lg shadow-white/10"
@@ -599,7 +609,7 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
                   )}
                 </div>
 
-                  {/* Desktop Table (Condensed) */}
+                {/* Desktop Table (Condensed) */}
                 <div className="hidden lg:block bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                   {isLoadingBookings ? (
                     <div className="p-8 text-center text-muted-foreground font-bold">Loading bookings...</div>
@@ -724,7 +734,7 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
                                     Confirm
                                   </Button>
                                 </div>
-                                
+
                                 {/* AI Smart Response Area */}
                                 <div className="pt-2 border-t border-slate-50">
                                   {!suggestedReplies[booking.id] ? (
@@ -776,7 +786,7 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
                             )}
 
                             {booking.status === "confirmed" && (
-                              <a 
+                              <a
                                 href={`https://wa.me/${booking.tourist_phone?.replace(/[^0-9]/g, "")}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
@@ -886,7 +896,7 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
                 <h2 className="text-2xl font-black text-charcoal">Profile & Highlights</h2>
                 <p className="text-sm text-muted-foreground font-medium">Manage your tour highlights and profile details.</p>
               </div>
-              
+
               <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8 max-w-2xl space-y-8">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -974,6 +984,56 @@ const VendorDashboard = ({ displayName, photo, slug, userId, category, location,
           ))}
         </nav>
       </div>
+      {/* ── AI Promo Modal ── */}
+      {showPromoModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl border border-white/20 animate-in zoom-in-95 slide-in-from-bottom-8 duration-500">
+            <div className="bg-primary-navy p-8 text-white relative">
+              <div className="absolute top-0 right-0 p-6">
+                <button
+                  onClick={() => setShowPromoModal(false)}
+                  className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="flex items-center gap-3 mb-2">
+                <Sparkles className="w-5 h-5 text-amber-400" />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60">Social Media Magic</span>
+              </div>
+              <h3 className="text-2xl font-black leading-tight">Your AI Promo is Ready!</h3>
+            </div>
+
+            <div className="p-8 space-y-6">
+              <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100 max-h-[300px] overflow-y-auto custom-scrollbar">
+                <p className="text-sm text-charcoal font-medium whitespace-pre-wrap leading-relaxed">
+                  {promoPostContent}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <Button
+                  onClick={() => {
+                    navigator.clipboard.writeText(promoPostContent);
+                    toast.success("Copied to clipboard!");
+                  }}
+                  className="w-full h-14 bg-primary-navy hover:bg-primary-navy/90 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-primary-navy/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <Copy className="w-5 h-5" />
+                  Copy to Clipboard
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowPromoModal(false)}
+                  className="w-full h-12 text-muted-foreground font-bold hover:bg-slate-50 rounded-2xl"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
